@@ -1,11 +1,14 @@
 import sys, json, random, asyncio
 from urllib import parse
 from urllib import request
+import urllib
 import goslate
 
 import hangups
 from hangups.ui.utils import get_conv_name
-from wikipedia import wikipedia
+import requests
+from wikipedia import wikipedia, PageError
+from WhistlerBot.UtilBot import UtilBot
 import handlers
 
 
@@ -72,6 +75,85 @@ def help(bot, event, *args):
 
 
 @command.register
+def define(bot, event, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Define', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /define <word to search for> <optional: definition number [defaults to 1st]>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Define a word.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        if args[-1].isdigit():
+            segments = [hangups.ChatMessageSegment(' '.join(args[0:-1]).title(), is_bold=True),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                        hangups.ChatMessageSegment(
+                            UtilBot.search(' '.join(args[0:-1]), num=int(args[-1])).replace('\n', ''))]
+            bot.send_message_segments(event.conv, segments)
+        else:
+            segments = [hangups.ChatMessageSegment(' '.join(args).title(), is_bold=True),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                        hangups.ChatMessageSegment(
+                            UtilBot.search(' '.join(args)).replace('\n', ''))]
+            bot.send_message_segments(event.conv, segments)
+
+
+@command.register
+def udefine(bot, event, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Urbanly Define', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /define <word to search for> <optional: definition number [defaults to 1st]>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Define a word.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        api_host = 'http://urbanscraper.herokuapp.com/search/'
+        num_requested = 0
+        returnall = False
+        if len(args) == 0:
+            return u'You need to give me a term to look up.'
+        else:
+            if args[-1] == '*':
+                args = args[:-1]
+                returnall = True
+            if args[-1].isdigit():
+                # we subtract one here because def #1 is the 0 item in the list
+                num_requested = int(args[-1]) - 1
+                args = args[:-1]
+
+            term = urllib.parse.quote(' '.join(args))
+            response = requests.get(api_host + term)
+            error_response = 'No definition found for \"{}\".'.format(' '.join(args))
+            if response.status_code != 200:
+                bot.send_message(event.conv, error_response)
+            result = response.content.decode()
+            response_list = json.loads(result)
+            if not response_list:
+                bot.send_message(event.conv, error_response)
+            result = response.content.decode()
+            result_list = json.loads(result)
+            num_requested = min(num_requested, len(result_list) - 1)
+            num_requested = max(0, num_requested)
+            result = result_list[num_requested].get(
+                'definition', error_response)
+            if returnall:
+                segments = []
+                for string in result_list:
+                    segments.append(hangups.ChatMessageSegment(string))
+                    segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+                bot.send_message_segments(event.conv, segments)
+            else:
+                segments = [hangups.ChatMessageSegment(' '.join(args), is_bold=True),
+                            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                            hangups.ChatMessageSegment(result + ' [{0} of {1}]'.format(
+                                num_requested + 1, len(result_list)))]
+                bot.send_message_segments(event.conv, segments)
+
+
+@command.register
 def wiki(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Wikipedia', is_bold=True),
@@ -82,18 +164,21 @@ def wiki(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Get summary from Wikipedia on search parameter.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        sentences = 3
-        if args[-1].isdigit():
-            sentences = args[-1]
-            page = wikipedia.page(' '.join(args[0:-1]))
-        else:
-            page = wikipedia.page(' '.join(args))
+        try:
+            sentences = 3
+            if args[-1].isdigit():
+                sentences = args[-1]
+                page = wikipedia.page(' '.join(args[0:-1]))
+            else:
+                page = wikipedia.page(' '.join(args))
 
-        segments = [hangups.ChatMessageSegment(page.title, is_bold=True, link_target=page.url),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(wikipedia.summary(page.original_title, sentences=sentences))]
+            segments = [hangups.ChatMessageSegment(page.title, is_bold=True, link_target=page.url),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                        hangups.ChatMessageSegment(wikipedia.summary(page.original_title, sentences=sentences))]
 
-        bot.send_message_segments(event.conv, segments)
+            bot.send_message_segments(event.conv, segments)
+        except PageError:
+            bot.send_message(event.conv, "Couldn't find that {}. Try something else.".format(' '.join(args)))
 
 
 @command.register
@@ -454,27 +539,27 @@ def quit(bot, event, *args):
 # Parametry: /bot config [get|set] [key] [subkey] [...] [value]"""
 #
 # if cmd == 'get' or cmd is None:
-#         config_args = list(args)
-#         value = bot.config.get_by_path(config_args) if config_args else dict(bot.config)
-#     elif cmd == 'set':
-#         config_args = list(args[:-1])
-#         if len(args) >= 2:
-#             bot.config.set_by_path(config_args, json.loads(args[-1]))
-#             bot.config.save()
-#             value = bot.config.get_by_path(config_args)
-#         else:
-#             yield from command.unknown_command(bot, event)
-#             return
-#     else:
-#         yield from command.unknown_command(bot, event)
-#         return
+# config_args = list(args)
+# value = bot.config.get_by_path(config_args) if config_args else dict(bot.config)
+# elif cmd == 'set':
+# config_args = list(args[:-1])
+# if len(args) >= 2:
+# bot.config.set_by_path(config_args, json.loads(args[-1]))
+# bot.config.save()
+# value = bot.config.get_by_path(config_args)
+# else:
+# yield from command.unknown_command(bot, event)
+# return
+# else:
+# yield from command.unknown_command(bot, event)
+# return
 #
-#     if value is None:
-#         value = 'Parameter Does Not Exist!'
+# if value is None:
+# value = 'Parameter Does Not Exist!'
 #
-#     config_path = ' '.join(k for k in ['config'] + config_args)
-#     segments = [hangups.ChatMessageSegment('{}:'.format(config_path),
-#                                            is_bold=True),
-#                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-#     segments.extend(text_to_segments(json.dumps(value, indent=2, sort_keys=True)))
-#     bot.send_message_segments(event.conv, segments)
+# config_path = ' '.join(k for k in ['config'] + config_args)
+# segments = [hangups.ChatMessageSegment('{}:'.format(config_path),
+# is_bold=True),
+# hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+# segments.extend(text_to_segments(json.dumps(value, indent=2, sort_keys=True)))
+# bot.send_message_segments(event.conv, segments)
