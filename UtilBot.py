@@ -1,8 +1,5 @@
-import ast
 from urllib import request
-from urllib.request import Request
 from xml.dom import minidom
-from xml.sax.xmlreader import XMLReader
 
 __author__ = 'wardellchandler'
 

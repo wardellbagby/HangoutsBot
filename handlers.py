@@ -1,7 +1,6 @@
 import logging, shlex, unicodedata, asyncio
 from cleverbot import ChatterBotFactory, ChatterBotType
 import hangups
-from BotCommands import BotCommands
 
 from commands import command
 
@@ -14,10 +13,13 @@ for line in words:
 class MessageHandler(object):
     """Handle Hangups conversation events"""
     cleversession = None
+    dotalk = False
 
     def __init__(self, bot, bot_command='/'):
         self.bot = bot
         self.bot_command = bot_command
+        from BotCommands import BotCommands
+
         self.commands = BotCommands()
         factory = ChatterBotFactory()
         cleverbotter = factory.create(ChatterBotType.CLEVERBOT)
@@ -60,9 +62,10 @@ class MessageHandler(object):
                 self.bot.send_message(event.conv, "MURICA!!!!!!!")
             elif "MURICA" in str(event.text).upper():
                 self.bot.send_message(event.conv, "Fuck yeah!")
-            elif ('BOT,' in textuppers or 'BOT.' in textuppers or 'BOT?' in textuppers or 'BOT!' in textuppers
-                  or 'WHISTLE ' in textuppers or ' ROBOT ' in textuppers or ' WHISTLEBOT ' in textuppers
-                  or textuppers.startswith('BOT')) and not MessageHandler.cleversession is None:
+            elif (MessageHandler.dotalk or (
+                                                    'BOT,' in textuppers or 'BOT.' in textuppers or 'BOT?' in textuppers or 'BOT!' in textuppers
+                                or 'WHISTLE ' in textuppers or ' ROBOT ' in textuppers or ' WHISTLEBOT ' in textuppers
+                    or textuppers.startswith('BOT'))) and not MessageHandler.cleversession is None:
                 self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
 
         """Handle conversation event"""

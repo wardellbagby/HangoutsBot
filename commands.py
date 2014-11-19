@@ -8,8 +8,8 @@ import hangups
 from hangups.ui.utils import get_conv_name
 import requests
 from wikipedia import wikipedia, PageError
-from WhistlerBot.UtilBot import UtilBot
-import handlers
+
+from UtilBot import UtilBot
 
 
 class CommandDispatcher(object):
@@ -444,10 +444,13 @@ def speakup(bot, event, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /speakup'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Unmutes the Cleverbot replies')]
+                    hangups.ChatMessageSegment('Purpose: Whistle will reply to everything.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        handlers.MessageHandler.speakup()
+        from handlers import MessageHandler
+
+        MessageHandler.dotalk = True
+        MessageHandler.speakup()
 
 
 @command.register
@@ -457,10 +460,12 @@ def shutup(bot, event, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /shutup'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Mutes the Cleverbot replies')]
+                    hangups.ChatMessageSegment('Purpose: Whistle will only reply to his name.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        handlers.MessageHandler.shutup()
+        from handlers import MessageHandler
+
+        MessageHandler.dotalk = False
 
 
 @command.register
@@ -473,7 +478,9 @@ def mute(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Mutes the Cleverbot replies')]
         bot.send_message_segments(event.conv, segments)
     else:
-        shutup(bot, event, args)
+        from handlers import MessageHandler
+
+        MessageHandler.shutup()
 
 
 @command.register
@@ -486,7 +493,8 @@ def unmute(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Unmutes the Cleverbot replies')]
         bot.send_message_segments(event.conv, segments)
     else:
-        speakup(bot, event, *args)
+        from handlers import MessageHandler
+        MessageHandler.speakup()
 
 
 @command.register

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # coding=utf-8
-import os, sys, argparse, logging, shutil, asyncio, time, signal
+import sys
+import asyncio
+import time
+import signal
 
-import appdirs
 import hangups
 from hangups.ui.utils import get_conv_name
-
 import config
 import handlers
 
@@ -15,7 +16,6 @@ LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 
 class ConversationEvent(object):
-
     def __init__(self, bot, conv_event):
         self.conv_event = conv_event
         self.conv_id = conv_event.conversation_id
