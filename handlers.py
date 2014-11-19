@@ -104,7 +104,7 @@ class MessageHandler(object):
 
         # Test if user has permissions for running command
         commands_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_admin')
-        if commands_admin_list and line_args[0].lower() in commands_admin_list:
+        if commands_admin_list and line_args[0].lower().replace('/', '') in commands_admin_list:
             admins_list = self.bot.get_config_suboption(event.conv_id, 'admins')
             if event.user_id.chat_id not in admins_list:
                 self.bot.send_message(event.conv,

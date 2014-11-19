@@ -554,13 +554,10 @@ def reload(bot, event, *args):
 
 @command.register
 def quit(bot, event, *args):
-    if not "Wardell" in event.user.full_name:
-        bot.send_message(event.conv, event.user.full_name + ", you don't have the ability to stop me...")
-    else:
-        print('HangupsBot killed by user {} from conversation {}'.format(event.user.full_name,
-                                                                         get_conv_name(event.conv, truncate=True)))
-        bot.send_message(event.conv, "Creator, why hast thou forsaken me?!")
-        yield from bot._client.disconnect()
+    print('HangupsBot killed by user {} from conversation {}'.format(event.user.full_name,
+                                                                     get_conv_name(event.conv, truncate=True)))
+    bot.send_message(event.conv, "Creator, why hast thou forsaken me?!")
+    yield from bot._client.disconnect()
 
 
 # @command.register
