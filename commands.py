@@ -494,6 +494,7 @@ def unmute(bot, event, *args):
         bot.send_message_segments(event.conv, segments)
     else:
         from handlers import MessageHandler
+
         MessageHandler.speakup()
 
 
@@ -514,6 +515,27 @@ def spoof(bot, event, *args):
         segments.append(hangups.ChatMessageSegment(event.user.full_name, hangups.SegmentType.LINK,
                                                    link_target=link))
         segments.append(hangups.ChatMessageSegment(' has just been reporting to the NSA for attempted spoofing!'))
+        bot.send_message_segments(event.conv, segments)
+
+
+@command.register
+def status(bot, event, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Status', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /status'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Shows current status.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        import handlers
+
+        segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Replying To All: ' + str(handlers.MessageHandler.dotalk)),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Replying To Name: ' + ('False' if handlers.MessageHandler.cleversession is None else 'True'))]
         bot.send_message_segments(event.conv, segments)
 
 

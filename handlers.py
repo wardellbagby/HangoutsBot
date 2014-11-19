@@ -12,7 +12,7 @@ for line in words:
 
 class MessageHandler(object):
     """Handle Hangups conversation events"""
-    cleversession = None
+    cleversession = -1
     dotalk = False
 
     def __init__(self, bot, bot_command='/'):
