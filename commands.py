@@ -7,6 +7,7 @@ import goslate
 import hangups
 from hangups.ui.utils import get_conv_name
 import requests
+from wikia import wikia
 from wikipedia import wikipedia, PageError
 
 from UtilBot import UtilBot
@@ -172,9 +173,10 @@ def wiki(bot, event, *args):
             else:
                 page = wikipedia.page(' '.join(args))
 
-            segments = [hangups.ChatMessageSegment(page.title, is_bold=True, link_target=page.url),
-                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                        hangups.ChatMessageSegment(wikipedia.summary(page.original_title, sentences=sentences))]
+            segments = [
+                hangups.ChatMessageSegment(page.title, hangups.SegmentType.LINK, is_bold=True, link_target=page.url),
+                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                hangups.ChatMessageSegment(wikipedia.summary(page.original_title, sentences=sentences))]
 
             bot.send_message_segments(event.conv, segments)
         except PageError:
@@ -189,6 +191,7 @@ def goog(bot, event, *args):
         segments = [hangups.ChatMessageSegment('{}:'.format("Result"), is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment("".join(str(results['responseData']['results'][0]['titleNoFormatting'])),
+                                               hangups.SegmentType.LINK,
                                                link_target="".join(str(results['responseData']['results'][0]['url'])))]
         bot.send_message_segments(event.conv, segments)
 
@@ -368,7 +371,35 @@ def leave(bot, event, conversation=None, *args):
             yield from c.send_message([
                 hangups.ChatMessageSegment('I\'ll be back!')
             ])
-            yield from bot._conv_list.delete_conversation(c.id_)
+            yield from bot._conv_list.leave_conversation(c.id_)
+
+
+@command.register
+def destiny(bot, event, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Destiny', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /destiny <keyword to search for> <optional: characters to display [default = 500]>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Get information about a Destiny topic.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        try:
+            characters = 500
+            if args[-1].isdigit():
+                characters = args[-1]
+                page = wikia.page('Destiny', ' '.join(args[0:-1]))
+            else:
+                page = wikia.page('Destiny', ' '.join(args))
+            segments = [
+                hangups.ChatMessageSegment(page.title, hangups.SegmentType.LINK, is_bold=True, link_target=page.url),
+                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                hangups.ChatMessageSegment(wikia.summary(page.original_title, 'Destiny', chars=characters))]
+
+            bot.send_message_segments(event.conv, segments)
+        except PageError:
+            bot.send_message(event.conv, "Couldn't find that {}. Try something else.".format(' '.join(args)))
 
 
 @command.register
@@ -380,23 +411,34 @@ def obfuscate(bot, event, *args):
                         'Usage: /obfuscate <text to obfuscate> <optional: number of times to obfuscate>'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Purpose: Makes your text unintelligible.)')]
+                        'Purpose: Runs your text through Google Translate a lot. Defaults to 14 times.)')]
         bot.send_message_segments(event.conv, segments)
     else:
         translator = goslate.Goslate()
-        languages = ['en', 'de', 'af', 'ar', 'km', 'zh-CN', 'xx-elmer', 'fi', 'fr', 'iw', 'la', 'xx-pirate', 'ro',
-                     'es', 'sv', 'th', 'tr', 'uk', 'vi', 'cy', 'yi']
+        languages = ['en', 'de', 'af', 'zh-CN', 'xx-elmer', 'fi', 'fr', 'xx-pirate', 'ro',
+                     'es', 'sk', 'tr', 'vi', 'cy']
+        showall = False
+        if args[-1] == '*':
+            showall = True
+            args = args[0:-1]
         times = len(languages)
-        if args[-1].isdigit() and int(args[-1]) < times:
-            times = args[-1]
+        if args[-1].isdigit():
+            times = int(args[-1])
             args = args[0:-1]
         text = ' '.join(args)
-
-        random.shuffle(languages)
+        translations = [hangups.ChatMessageSegment(text),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
         for x in range(0, times):
-            text = translator.translate(text, languages[x])
+            text = translator.translate(text, languages[random.randint(0, len(languages) - 1)])
+            if showall:
+                translations.append(hangups.ChatMessageSegment(text))
+                translations.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
         text = translator.translate(text, 'en')
-        bot.send_message(event.conv, text)
+        if showall:
+            translations.append(hangups.ChatMessageSegment(text))
+            bot.send_message_segments(event.conv, translations)
+        else:
+            bot.send_message(event.conv, text)
 
 
 @command.register

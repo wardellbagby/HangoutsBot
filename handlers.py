@@ -63,7 +63,7 @@ class MessageHandler(object):
             elif "MURICA" in str(event.text).upper():
                 self.bot.send_message(event.conv, "Fuck yeah!")
             elif (MessageHandler.dotalk or (
-                                                    'BOT,' in textuppers or 'BOT.' in textuppers or 'BOT?' in textuppers or 'BOT!' in textuppers
+                                                    'BOT,' in textuppers or ' BOT.' in textuppers or ' BOT?' in textuppers or ' BOT!' in textuppers
                                 or 'WHISTLE ' in textuppers or ' ROBOT ' in textuppers or ' WHISTLEBOT ' in textuppers
                     or textuppers.startswith('BOT'))) and not MessageHandler.cleversession is None:
                 self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
