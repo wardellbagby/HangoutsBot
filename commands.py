@@ -7,7 +7,7 @@ import goslate
 import hangups
 from hangups.ui.utils import get_conv_name
 import requests
-from wikia import wikia
+from wikia import wikia, WikiaError
 from wikipedia import wikipedia, PageError
 
 from UtilBot import UtilBot
@@ -387,19 +387,21 @@ def destiny(bot, event, *args):
     else:
         try:
             characters = 500
+
             if args[-1].isdigit():
                 characters = args[-1]
-                page = wikia.page('Destiny', ' '.join(args[0:-1]))
+                page = wikia.page('Destiny', wikia.search(' '.join(args[0:-1]), 'destiny')[0])
             else:
-                page = wikia.page('Destiny', ' '.join(args))
+                page = wikia.page('Destiny', wikia.search(' '.join(args), 'destiny')[0])
             segments = [
-                hangups.ChatMessageSegment(page.title, hangups.SegmentType.LINK, is_bold=True, link_target=page.url),
+                hangups.ChatMessageSegment(page.title.title(), hangups.SegmentType.LINK, is_bold=True,
+                                           link_target=page.url),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                 hangups.ChatMessageSegment(wikia.summary(page.original_title, 'Destiny', chars=characters))]
 
             bot.send_message_segments(event.conv, segments)
-        except PageError:
-            bot.send_message(event.conv, "Couldn't find that {}. Try something else.".format(' '.join(args)))
+        except WikiaError:
+            bot.send_message(event.conv, "Couldn't find '{}'. Try something else.".format(' '.join(args)))
 
 
 @command.register
