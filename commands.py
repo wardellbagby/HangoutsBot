@@ -14,6 +14,7 @@ from wikipedia import wikipedia, PageError
 import Genius
 
 from UtilBot import UtilBot
+from utils import text_to_segments
 
 
 class CommandDispatcher(object):
@@ -698,33 +699,66 @@ def quit(bot, event, *args):
     yield from bot._client.disconnect()
 
 
-# @command.register
-# def config(bot, event, cmd=None, *args):
-# """Zobrazí nebo upraví konfiguraci bota
-# Parametry: /bot config [get|set] [key] [subkey] [...] [value]"""
-#
-# if cmd == 'get' or cmd is None:
-# config_args = list(args)
-# value = bot.config.get_by_path(config_args) if config_args else dict(bot.config)
-# elif cmd == 'set':
-# config_args = list(args[:-1])
-# if len(args) >= 2:
-# bot.config.set_by_path(config_args, json.loads(args[-1]))
-# bot.config.save()
-# value = bot.config.get_by_path(config_args)
-# else:
-# yield from command.unknown_command(bot, event)
-# return
-# else:
-# yield from command.unknown_command(bot, event)
-# return
-#
-# if value is None:
-# value = 'Parameter Does Not Exist!'
-#
-# config_path = ' '.join(k for k in ['config'] + config_args)
-# segments = [hangups.ChatMessageSegment('{}:'.format(config_path),
-# is_bold=True),
-# hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-# segments.extend(text_to_segments(json.dumps(value, indent=2, sort_keys=True)))
-# bot.send_message_segments(event.conv, segments)
+@command.register
+def config(bot, event, cmd=None, *args):
+    if cmd == 'get' or cmd is None:
+        config_args = list(args)
+        value = bot.config.get_by_path(config_args) if config_args else dict(bot.config)
+    elif cmd == 'set':
+        config_args = list(args[:-1])
+        if len(args) >= 2:
+            bot.config.set_by_path(config_args, json.loads(args[-1]))
+            bot.config.save()
+            value = bot.config.get_by_path(config_args)
+        else:
+            yield from command.unknown_command(bot, event)
+            return
+    else:
+        yield from command.unknown_command(bot, event)
+        return
+
+    if value is None:
+        value = 'Parameter does not exist!'
+
+    config_path = ' '.join(k for k in ['config'] + config_args)
+    segments = [hangups.ChatMessageSegment('{}:'.format(config_path),
+                                           is_bold=True),
+                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+    segments.extend(text_to_segments(json.dumps(value, indent=2, sort_keys=True)))
+    bot.send_message_segments(event.conv, segments)
+
+
+@command.register
+def flip(bot, event, *args):
+    n = random.randint(0, 1)
+    bot.send_message(event.conv, "Heads" if n else "Tails")
+
+
+@command.register
+def fortune(bot, event, *args):
+    """Give a random fortune"""
+    url = "http://www.fortunecookiemessage.com"
+    html = request.urlopen(url).read().decode('utf-8')
+    m = re.search("class=\"cookie-link\">(<p>)?", html)
+    m = re.search("(</p>)?</a>", html[m.end():])
+    bot.send_message(event.conv, m.string[:m.start()])
+
+
+@command.register
+def acrostic(bot, event, *args):
+    words = open('wordlist.txt').read().strip().split()
+    for arg in args:
+        letters = [letter.lower() for letter in arg]
+        random_words = []
+        for index, letter in enumerate(letters):
+            if index == len(arg) - 1:
+                random_words.append(
+                    random.choice([word for word in words if word[0].lower() == letter and word[len(word) - 2] != "'"]))
+            else:
+                random_words.append(random.choice([word for word in words if word[0].lower() == letter]))
+
+        random_words = " ".join([word[0].upper() + word[1:] for word in random_words])
+
+        msg = "".join([letter.upper() for letter in letters]) + ": " + random_words
+        bot.send_message(event.conv, msg)
+

@@ -112,6 +112,8 @@ class HangupsBot(object):
 
     def handle_membership_change(self, conv_event):
         """Handle conversation membership change"""
+
+        #TODO Translate this....
         event = ConversationEvent(self, conv_event)
 
         # Don't handle events caused by the bot himself
