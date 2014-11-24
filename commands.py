@@ -409,75 +409,93 @@ def destiny(bot, event, *args):
 
 @command.register
 def guessthesong(bot, event, *args):
-    regex = re.compile('[%s]' % re.escape(string.punctuation))
-    results = 1
-    if args[-1].isdigit():
-        results = int(args[-1])
-
-    lyric = regex.sub('', ' '.join(args))
-    songs = Genius.search_songs(lyric)
-    results = len(songs) if results > len(songs) else results
-    segments = []
-
-    for x in range(0, results):
-        segments.append(hangups.ChatMessageSegment(songs[x].name))
-        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-    if len(segments) == 0:
-        bot.send_message(event.conv, "I couldn't guess the song...")
-    else:
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Guess The Song', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /guessthesong <lyric in song>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Guessing a song!')]
         bot.send_message_segments(event.conv, segments)
+    else:
+        regex = re.compile('[%s]' % re.escape(string.punctuation))
+        results = 1
+        if args[-1].isdigit():
+            results = int(args[-1])
+
+        lyric = regex.sub('', ' '.join(args))
+        songs = Genius.search_songs(lyric)
+        results = len(songs) if results > len(songs) else results
+        segments = []
+
+        for x in range(0, results):
+            segments.append(hangups.ChatMessageSegment(songs[x].name))
+            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+        if len(segments) == 0:
+            bot.send_message(event.conv, "I couldn't guess the song...")
+        else:
+            bot.send_message_segments(event.conv, segments)
 
 
 @command.register
 def finish(bot, event, *args):
-    # TODO Add the ? to this and to the Guess The Song...
-    showguess = False
-    if args[-1].isdigit():
-        showguess = False if int(args[-1]) == 0 else True
-        args = args[0:-1]
-    lyric = ' '.join(args)
-    songs = Genius.search_songs(lyric)
-
-    if len(songs) < 1:
-        bot.send_message(event.conv, "I couldn't find your lyrics.")
-    lyrics = songs[0].raw_lyrics
-    anchors = {}
-
-    lyrics = lyrics.split('\n')
-    currmin = (0, UtilBot.levenshtein_distance(lyrics[0], lyric)[0])
-    for x in range(1, len(lyrics) - 1):
-        try:
-            currlyric = lyrics[x]
-            if not currlyric.isspace():
-                result = UtilBot.levenshtein_distance(currlyric, lyric)
-            else:
-                continue
-            distance = abs(result[0])
-            lyrics[x] = lyrics[x], result[1]
-
-            if currmin[1] > distance:
-                currmin = (x, distance)
-            if currlyric.startswith('['):
-                next = UtilBot.find_next_non_blank(lyrics, x)
-                anchors[currlyric] = lyrics[next][0]
-            if lyric in anchors:
-                bot.send_message(event.conv, str(anchors[lyric]))
-                return
-        except Exception as e:
-            print(e)
-    next = UtilBot.find_next_non_blank(lyrics, currmin[0])
-    chopped = lyrics[currmin[0]][1]
-    foundlyric = lyrics[currmin[0]][0] + " " + lyrics[next][0] if chopped else lyrics[next][0]
-    if showguess:
-        segments = [hangups.ChatMessageSegment(foundlyric),
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Finish', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(songs[0].name)]
+                    hangups.ChatMessageSegment(
+                        'Usage: /finish <lyrics to finish> <optional: * symbol to show guessed song>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Finish a lyric!')]
         bot.send_message_segments(event.conv, segments)
     else:
-        bot.send_message(event.conv, foundlyric)
+        showguess = False
+        if args[-1] == '*':
+            showguess = True
+            args = args[0:-1]
+        lyric = ' '.join(args)
+        songs = Genius.search_songs(lyric)
 
-    return
+        if len(songs) < 1:
+            bot.send_message(event.conv, "I couldn't find your lyrics.")
+        lyrics = songs[0].raw_lyrics
+        anchors = {}
+
+        lyrics = lyrics.split('\n')
+        currmin = (0, UtilBot.levenshtein_distance(lyrics[0], lyric)[0])
+        for x in range(1, len(lyrics) - 1):
+            try:
+                currlyric = lyrics[x]
+                if not currlyric.isspace():
+                    # Returns the distance and whether or not the lyric had to be chopped to compare
+                    result = UtilBot.levenshtein_distance(currlyric, lyric)
+                else:
+                    continue
+                distance = abs(result[0])
+                lyrics[x] = lyrics[x], result[1]
+
+                if currmin[1] > distance:
+                    currmin = (x, distance)
+                if currlyric.startswith('['):
+                    next = UtilBot.find_next_non_blank(lyrics, x)
+                    anchors[currlyric] = lyrics[next][0]
+                if lyric in anchors:
+                    bot.send_message(event.conv, str(anchors[lyric]))
+                    return
+            except Exception as e:
+                print(e)
+        next = UtilBot.find_next_non_blank(lyrics, currmin[0])
+        chopped = lyrics[currmin[0]][1]
+        foundlyric = lyrics[currmin[0]][0] + " " + lyrics[next][0] if chopped else lyrics[next][0]
+        if showguess:
+            segments = [hangups.ChatMessageSegment(foundlyric),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                        hangups.ChatMessageSegment(songs[0].name)]
+            bot.send_message_segments(event.conv, segments)
+        else:
+            bot.send_message(event.conv, foundlyric)
+
+        return
 
 
 @command.register

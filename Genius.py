@@ -267,7 +267,7 @@ def get_artist_popular_songs(url):
     soup = _get_soup(url)
     songs = []
     for row in soup.find('ul', {'class': 'song_list'}):
-        if (type(row.find('span')) != int):
+        if type(row.find('span')) != int:
             songs.append(
                 Song(''.join(row.find('span').findAll(text=True)).strip(), RAPGENIUS_URL + row.find('a').get('href')))
 
