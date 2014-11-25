@@ -1,3 +1,4 @@
+from fractions import Fraction
 import string
 import sys, json, random, asyncio
 from urllib import parse
@@ -730,8 +731,21 @@ def config(bot, event, cmd=None, *args):
 
 @command.register
 def flip(bot, event, *args):
-    n = random.randint(0, 1)
-    bot.send_message(event.conv, "Heads" if n else "Tails")
+    times = 1
+    if len(args) > 0 and args[-1].isdigit():
+        times = int(args[-1]) if int(args[-1]) < 1000000 else 1000000
+    heads, tails = 0, 0
+    for x in range(0, times):
+        n = random.randint(0, 1)
+        if n == 1:
+            heads += 1
+        else:
+            tails += 1
+    bot.send_message(event.conv,
+                     "Winner: " + (
+                     "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
+                         heads) + " Tails: " + str(tails) + " Ratio: " + (str(
+                         Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
 
 
 @command.register
