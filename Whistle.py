@@ -3,10 +3,12 @@
 
 
 # Useless function? Maybe...
+import os
 from hangupsbot import HangupsBot
 
 
 def start():
+    os.system("git pull")
     bot = HangupsBot("cookies.txt", "config.json")
     bot.run()
 
