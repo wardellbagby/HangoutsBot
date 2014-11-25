@@ -10,6 +10,7 @@ import hangups
 from hangups.ui.utils import get_conv_name
 import re
 import requests
+import time
 from wikia import wikia, WikiaError
 from wikipedia import wikipedia, PageError
 import Genius
@@ -609,6 +610,19 @@ def shutup(bot, event, *args):
 
 
 @command.register
+def trash(bot, event, *args):
+    bot.send_message(event.conv, "🚮")
+
+
+@command.register
+def restart(bot, event, *args):
+    import os
+
+    os.system('python Whistle.py')
+    quit(bot, event, args)
+
+
+@command.register
 def mute(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Mute', is_bold=True),
@@ -743,7 +757,7 @@ def flip(bot, event, *args):
             tails += 1
     bot.send_message(event.conv,
                      "Winner: " + (
-                     "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
+                         "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
                          heads) + " Tails: " + str(tails) + " Ratio: " + (str(
                          Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
 
