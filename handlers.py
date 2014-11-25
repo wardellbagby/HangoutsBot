@@ -56,6 +56,8 @@ class MessageHandler(object):
         if not event.user.is_self and not event.text.startswith('/'):
             if event.text[0] == '#':
                 self.bot.send_message(event.conv, self.commands.unhashtag(str(event.text)))
+            elif "🚮" in str(event.text):
+                self.bot.send_message(event.conv, "🚮")
             elif str(event.text).endswith('?!'):
                 self.bot.send_message(event.conv, "I agree with " + str(event.user.full_name) + '.')
             elif "AMERICA" in str(event.text).upper():
