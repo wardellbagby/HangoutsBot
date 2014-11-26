@@ -42,6 +42,7 @@ class HangupsBot(object):
         self._client = None
         self._cookies_path = cookies_path
         self._max_retries = max_retries
+        self.conv_settings = {}
 
         # These are populated by on_connect when it's called.
         self._conv_list = None  # hangups.ConversationList
