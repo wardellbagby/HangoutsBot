@@ -1,4 +1,5 @@
 from fractions import Fraction
+import glob
 import os
 import string
 import sys, json, random, asyncio
@@ -514,10 +515,16 @@ def record(bot, event, *args):
                         'Usage: /record date <date to show records from>'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
+                        'Usage: /record list'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /record search <search term>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
                         'Usage: /record'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Purpose: Store/Show records of conversations. Note: All records will be prepended by: \"On this day, <date>,\" automatically. ')]
+                        'Purpose: Store/Show records of conversations. Note: All records will be prepended by: \"On the day of <date>,\" automatically. ')]
         bot.send_message_segments(event.conv, segments)
     else:
         import datetime
@@ -526,6 +533,7 @@ def record(bot, event, *args):
         if not os.path.exists(directory):
             os.makedirs(directory)
         filename = str(datetime.date.today()) + ".txt"
+        file = None
         if ''.join(args) == "clear":
             file = open(directory + '\\' + filename, "a+")
             file.seek(0)
@@ -542,6 +550,26 @@ def record(bot, event, *args):
                 segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
                 segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
             bot.send_message_segments(event.conv, segments)
+        elif args[0] == "list":
+            files = os.listdir(directory)
+            segments = []
+            for name in files:
+                segments.append(hangups.ChatMessageSegment(name.replace(".txt", "")))
+                segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            bot.send_message_segments(event.conv, segments)
+        elif args[0] == "search":
+            args = args[1:]
+            term = ' '.join(args)
+            foundin = []
+            for name in glob.glob(directory + "\\" + '*.txt'):
+                with open(name) as f:
+                    contents = f.read()
+                if term in contents:
+                    foundin.append(name.replace(directory, "").replace(".txt", "").replace("\\", ""))
+            if len(foundin) > 0:
+                bot.send_message(event.conv, "Search Term [" + term + "] found in these records: " + ' '.join(foundin))
+            else:
+                bot.send_message(event.conv, "Couldn't find \"" + term + "\" in any records.")
         elif args[0] == "date":
             from dateutil import parser
 
@@ -568,7 +596,8 @@ def record(bot, event, *args):
             file = open(directory + '\\' + filename, "a+")
             file.write(' '.join(args) + '\n')
             bot.send_message(event.conv, "Record saved successfully.")
-        file.close()
+        if file is not None:
+            file.close()
 
 
 @command.register

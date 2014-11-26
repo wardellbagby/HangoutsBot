@@ -21,4 +21,4 @@ class BotCommands:
                 x = len(hashtagged)
             else:
                 x -= 1
-        return "Unhashtagged: " + withspaces + "[" + hashtagged + "]".title()
+        return "Unhashtagged: " + withspaces + ("[" + hashtagged + "]" if len(hashtagged) > 0 else "").title()
