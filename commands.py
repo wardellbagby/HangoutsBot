@@ -2,21 +2,22 @@ from fractions import Fraction
 import glob
 import os
 import string
-import sys, json, random, asyncio
+import json
+import random
+import asyncio
 from urllib import parse
 from urllib import request
 import urllib
-import goslate
+import re
 
+import goslate
 import hangups
 from hangups.ui.utils import get_conv_name
-import re
 import requests
-import time
 from wikia import wikia, WikiaError
 from wikipedia import wikipedia, PageError
-import Genius
 
+import Genius
 from UtilBot import UtilBot
 from utils import text_to_segments
 
@@ -114,7 +115,7 @@ def udefine(bot, event, *args):
         segments = [hangups.ChatMessageSegment('Urbanly Define', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Usage: /define <word to search for> <optional: definition number [defaults to 1st]>'),
+                        'Usage: /udefine <word to search for> <optional: definition number [defaults to 1st]>'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Purpose: Define a word.')]
         bot.send_message_segments(event.conv, segments)
@@ -689,8 +690,7 @@ def speakup(bot, event, *args):
     else:
         from handlers import MessageHandler
 
-        MessageHandler.dotalk = True
-        MessageHandler.speakup()
+        MessageHandler.speakup(bot, event)
 
 
 @command.register
@@ -705,7 +705,7 @@ def shutup(bot, event, *args):
     else:
         from handlers import MessageHandler
 
-        MessageHandler.dotalk = False
+        MessageHandler.shutup(bot, event)
 
 
 @command.register
@@ -731,9 +731,11 @@ def mute(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Mutes the Cleverbot replies')]
         bot.send_message_segments(event.conv, segments)
     else:
-        from handlers import MessageHandler
-
-        MessageHandler.shutup()
+        if bot.conv_settings[event.conv_id] is None:
+            bot.conv_settings[event.conv_id] = {}
+        settings = dict(bot.conv_settings[event.conv_id])
+        settings['muted'] = True
+        bot.conv_settings[event.conv_id] = settings
 
 
 @command.register
@@ -746,9 +748,11 @@ def unmute(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Unmutes the Cleverbot replies')]
         bot.send_message_segments(event.conv, segments)
     else:
-        from handlers import MessageHandler
-
-        MessageHandler.speakup()
+        if bot.conv_settings[event.conv_id] is None:
+            bot.conv_settings[event.conv_id] = {}
+        settings = dict(bot.conv_settings[event.conv_id])
+        settings['muted'] = False
+        bot.conv_settings[event.conv_id] = settings
 
 
 @command.register
@@ -785,10 +789,10 @@ def status(bot, event, *args):
 
         segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Replying To All: ' + str(handlers.MessageHandler.dotalk)),
+                    hangups.ChatMessageSegment('Replying To All: ' + str(bot.conv_settings[event.conv_id]['clever'])),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Replying To Name: ' + ('False' if handlers.MessageHandler.cleversession is None else 'True'))]
+                        'Replying To Name: ' + str(bot.conv_settings[event.conv_id]['muted']))]
         bot.send_message_segments(event.conv, segments)
 
 

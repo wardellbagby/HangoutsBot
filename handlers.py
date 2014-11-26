@@ -26,14 +26,25 @@ class MessageHandler(object):
         MessageHandler.cleversession = cleverbotter.create_session()
 
     @staticmethod
-    def shutup():
-        MessageHandler.cleversession = None
+    def shutup(bot, event):
+        if bot.conv_settings[event.conv_id] is None:
+            bot.conv_settings[event.conv_id] = {}
+        settings = dict(bot.conv_settings[event.conv_id])
+        settings['clever'] = False
+        bot.conv_settings[event.conv_id] = settings
 
     @staticmethod
-    def speakup():
-        factory = ChatterBotFactory()
-        cleverbotter = factory.create(ChatterBotType.CLEVERBOT)
-        MessageHandler.cleversession = cleverbotter.create_session()
+    def speakup(bot, event):
+        if MessageHandler.cleversession is None:
+            factory = ChatterBotFactory()
+            cleverbotter = factory.create(ChatterBotType.CLEVERBOT)
+            MessageHandler.cleversession = cleverbotter.create_session()
+
+        if bot.conv_settings[event.conv_id] is None:
+            bot.conv_settings[event.conv_id] = {}
+        settings = dict(bot.conv_settings[event.conv_id])
+        settings['clever'] = True
+        bot.conv_settings[event.conv_id] = settings
 
 
     @staticmethod
@@ -52,6 +63,23 @@ class MessageHandler(object):
     @asyncio.coroutine
     def handle(self, event):
         # Use this to add commands that are based off of what text the user inputs when it isn't a command.
+        if event.conv_id not in self.bot.conv_settings:
+            self.bot.conv_settings[event.conv_id] = {}
+        try:
+            muted = self.bot.conv_settings[event.conv_id]['muted']
+        except KeyError:
+            muted = False
+            import commands
+
+            commands.unmute(self.bot, event)
+        try:
+            clever = self.bot.conv_settings[event.conv_id]['clever']
+        except KeyError:
+            clever = False
+            import commands
+
+            commands.shutup(self.bot, event)
+
         textuppers = str(event.text).upper()
         if not event.user.is_self and not event.text.startswith('/'):
             if event.text[0] == '#':
@@ -64,12 +92,13 @@ class MessageHandler(object):
                 self.bot.send_message(event.conv, "MURICA!!!!!!!")
             elif "MURICA" in str(event.text).upper():
                 self.bot.send_message(event.conv, "Fuck yeah!")
-            elif (MessageHandler.dotalk or ('BOT,' in textuppers or ' BOT.' in textuppers or ' BOT?' in textuppers
-                                            or ' BOT!' in textuppers or 'WHISTLE ' in textuppers
-                                            or ' ROBOT ' in textuppers or ' WHISTLEBOT ' in textuppers
-                                            or textuppers.startswith('BOT'))) \
-                    and MessageHandler.cleversession is not None:
-                self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
+            elif not muted:
+                if (clever or (
+                                                        'BOT,' in textuppers or ' BOT.' in textuppers or ' BOT?' in textuppers
+                                        or ' BOT!' in textuppers or 'WHISTLE ' in textuppers
+                                or ' ROBOT ' in textuppers or ' WHISTLEBOT ' in textuppers
+                        or textuppers.startswith('BOT'))) and MessageHandler.cleversession is not None:
+                    self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
 
         """Handle conversation event"""
         if logging.root.level == logging.DEBUG:
