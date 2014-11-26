@@ -1,4 +1,5 @@
 from fractions import Fraction
+import os
 import string
 import sys, json, random, asyncio
 from urllib import parse
@@ -502,12 +503,81 @@ def finish(bot, event, *args):
 
 
 @command.register
-def obscure(bot, event, *args):
+def record(bot, event, *args):
     if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Obfuscate', is_bold=True),
+        segments = [hangups.ChatMessageSegment('Record', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Usage: /obfuscate <text to obfuscate> <optional: number of times to obfuscate>'),
+                        'Usage: /record <text to record>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /record date <date to show records from>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /record'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Purpose: Store/Show records of conversations. Note: All records will be prepended by: \"On this day, <date>,\" automatically. ')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        import datetime
+
+        directory = "Records" + "\\" + str(event.conv_id)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        filename = str(datetime.date.today()) + ".txt"
+        if ''.join(args) == "clear":
+            file = open(directory + '\\' + filename, "a+")
+            file.seek(0)
+            file.truncate()
+        elif ''.join(args) == '':
+            file = open(directory + '\\' + filename, "r+")
+
+            segments = [hangups.ChatMessageSegment(
+                'On the day of ' + datetime.date.today().strftime('%B %d, %Y') + ':', is_bold=True),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+            for line in file:
+                segments.append(
+                    hangups.ChatMessageSegment(line))
+                segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+                segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            bot.send_message_segments(event.conv, segments)
+        elif args[0] == "date":
+            from dateutil import parser
+
+            args = args[1:]
+            try:
+                dt = parser.parse(' '.join(args))
+            except Exception as e:
+                bot.send_message(event.conv, "Couldn't parse " + ' '.join(args) + " as a valid date.")
+                return
+            filename = str(dt.date()) + ".txt"
+            try:
+                file = open(directory + '\\' + filename, "r")
+            except IOError:
+                bot.send_message(event.conv, "No record for the day of " + dt.strftime('%B %d, %Y') + '.')
+                return
+            segments = [hangups.ChatMessageSegment('On the day of ' + dt.strftime('%B %d, %Y') + ':', is_bold=True),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+            for line in file:
+                segments.append(hangups.ChatMessageSegment(line))
+                segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+                segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            bot.send_message_segments(event.conv, segments)
+        else:
+            file = open(directory + '\\' + filename, "a+")
+            file.write(' '.join(args) + '\n')
+            bot.send_message(event.conv, "Record saved successfully.")
+        file.close()
+
+
+@command.register
+def obscure(bot, event, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Obscure', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /obscure <text to obscure> <optional: number of times to obscure>'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
                         'Purpose: Runs your text through Google Translate a lot. Defaults to 14 times.)')]
