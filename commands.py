@@ -540,8 +540,9 @@ def record(bot, event, *args):
             file.seek(0)
             file.truncate()
         elif ''.join(args) == '':
-            file = open(directory + '\\' + filename, "r+")
-
+            file = open(directory + '\\' + filename, "a+")
+            # If the mode is r+, it won't create the file. If it's a+, I have to seek to the beginning.
+            file.seek(0)
             segments = [hangups.ChatMessageSegment(
                 'On the day of ' + datetime.date.today().strftime('%B %d, %Y') + ':', is_bold=True),
                         hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
@@ -717,7 +718,7 @@ def trash(bot, event, *args):
 def restart(bot, event, *args):
     import os
 
-    os.system('python Whistle.py')
+    os.system('python Main.py')
     quit(bot, event, args)
 
 
