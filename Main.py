@@ -7,11 +7,17 @@ import os
 from hangupsbot import HangupsBot
 
 
-def start():
-    # This commands auto updates the project. Please have Git installed and in your PATH variable on Windows.
-    os.system("git pull")
-    bot = HangupsBot("cookies.txt", "config.json")
-    bot.run()
+class Main:
+    bot = None
+
+    @staticmethod
+    def start():
+        # This commands auto updates the project. Please have Git installed and in your PATH variable on Windows.
+        os.system("git pull")
+        if Main.bot is not None:
+            Main.bot.stop()
+        Main.bot = HangupsBot("cookies.txt", "config.json")
+        Main.bot.run()
 
 
-start()
+Main().start()

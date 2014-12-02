@@ -134,7 +134,7 @@ def udefine(bot, event, *args):
                 num_requested = int(args[-1]) - 1
                 args = args[:-1]
 
-            term = urllib.parse.quote(' '.join(args))
+            term = urllib.parse.quote('.'.join(args))
             response = requests.get(api_host + term)
             error_response = 'No definition found for \"{}\".'.format(' '.join(args))
             if response.status_code != 200:
