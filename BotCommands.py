@@ -1,8 +1,17 @@
+import re
+
 __author__ = 'cbagby'
 
 
 class BotCommands:
     def __init__(self):
+        self.names = []
+        self.names.append("WHISTLE")
+        self.names.append("BOT")
+        self.names.append("WHISTLEBOT")
+        self.names.append("ROBOT")
+        self.names.append("COI")
+        self.nameregex = re.compile('(' + '|'.join(self.names) + ')[\s\.\?!:\',\";]+')
         self.words = open("wordlist.txt")
         self.list = []
         for line in self.words:

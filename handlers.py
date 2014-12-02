@@ -93,11 +93,7 @@ class MessageHandler(object):
             elif "MURICA" in str(event.text).upper():
                 self.bot.send_message(event.conv, "Fuck yeah!")
             elif not muted:
-                if (clever or (
-                                                        'BOT,' in textuppers or ' BOT.' in textuppers or ' BOT?' in textuppers
-                                        or ' BOT!' in textuppers or 'WHISTLE ' in textuppers
-                                or ' ROBOT ' in textuppers or ' WHISTLEBOT ' in textuppers
-                        or textuppers.startswith('BOT'))) and MessageHandler.cleversession is not None:
+                if (clever or (self.commands.nameregex.search(textuppers))) and MessageHandler.cleversession is not None:
                     self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
 
         """Handle conversation event"""

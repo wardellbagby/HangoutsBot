@@ -793,7 +793,7 @@ def status(bot, event, *args):
                     hangups.ChatMessageSegment('Replying To All: ' + str(bot.conv_settings[event.conv_id]['clever'])),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Replying To Name: ' + str(bot.conv_settings[event.conv_id]['muted']))]
+                        'Replying To Name: ' + str(not bot.conv_settings[event.conv_id]['muted']))]
         bot.send_message_segments(event.conv, segments)
 
 
@@ -894,3 +894,4 @@ def acrostic(bot, event, *args):
         msg = "".join([letter.upper() for letter in letters]) + ": " + random_words
         bot.send_message(event.conv, msg)
 
+# TODO Add a name function.
