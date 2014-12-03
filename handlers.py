@@ -121,9 +121,14 @@ class MessageHandler(object):
 
         # Parse message
         line_args = shlex.split(event.text, posix=False)
+        i = 0
+        while i < len(line_args):
+            line_args[i] = line_args[i].strip()
+            if line_args[i] == '' or line_args[i] == '':
+                line_args.remove(line_args[i])
+            else:
+                i += 1
 
-        if line_args[0].upper() == "/BOT":
-            line_args = line_args[1:]
 
         # Test if command length is sufficient
         if len(line_args) < 1:
