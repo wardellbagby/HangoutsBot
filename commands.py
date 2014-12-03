@@ -595,7 +595,8 @@ def record(bot, event, *args):
             if len(foundin) > 0:
                 segments = [hangups.ChatMessageSegment("Found "),
                             hangups.ChatMessageSegment(term, is_bold=True),
-                            hangups.ChatMessageSegment(" in:\n", hangups.SegmentType.LINE_BREAK)]
+                            hangups.ChatMessageSegment(" in:"),
+                            hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK)]
                 for file in foundin:
                     segments.append(hangups.ChatMessageSegment(file))
                     segments.append(hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK))
