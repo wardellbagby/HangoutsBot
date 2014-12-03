@@ -104,6 +104,8 @@ class MessageHandler(object):
         if not event.user.is_self and event.text:
             if event.text.startswith('/'):
                 # Run command
+                if event.text[1] == '?':
+                    event.text = "/help"
                 yield from self.handle_command(event)
             else:
                 # Forward messages
