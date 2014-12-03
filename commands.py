@@ -593,8 +593,9 @@ def record(bot, event, *args):
                 if term.lower() in contents.lower():
                     foundin.append(name.replace(directory, "").replace(".txt", "").replace("\\", ""))
             if len(foundin) > 0:
-                segments = [hangups.ChatMessageSegment("[" + term + "] found in: "),
-                            hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK)]
+                segments = [hangups.ChatMessageSegment("Found "),
+                            hangups.ChatMessageSegment(term, is_bold=True),
+                            hangups.ChatMessageSegment(" in:\n", hangups.SegmentType.LINE_BREAK)]
                 for file in foundin:
                     segments.append(hangups.ChatMessageSegment(file))
                     segments.append(hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK))
