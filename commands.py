@@ -15,7 +15,6 @@ import hangups
 from hangups.ui.utils import get_conv_name
 import requests
 from wikia import wikia, WikiaError
-from wikipedia import wikipedia, PageError
 
 import Genius
 from UtilBot import UtilBot
@@ -174,22 +173,44 @@ def wiki(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Get summary from Wikipedia on search parameter.')]
         bot.send_message_segments(event.conv, segments)
     else:
+        from wikipedia import wikipedia, PageError, DisambiguationError
+
+        def summary(self, sentences=3):
+            if not getattr(self, '_summary', False):
+                query_params = {
+                    'prop': 'extracts',
+                    'explaintext': '',
+                    'exintro': '',
+                }
+            query_params['exsentences'] = sentences
+            if not getattr(self, 'title', None) is None:
+                query_params['titles'] = self.title
+            else:
+                query_params['pageids'] = self.pageid
+
+            request = wikipedia._wiki_request(query_params)
+            self._summary = request['query']['pages'][self.pageid]['extract']
+
+            return self._summary
+
+        wikipedia.WikipediaPage.summary = summary
         try:
             sentences = 3
-            if args[-1].isdigit():
-                sentences = args[-1]
-                page = wikipedia.page(' '.join(args[0:-1]))
-            else:
+            try:
+                if args[-1].isdigit():
+                    sentences = args[-1]
+                    args = args[:-1]
                 page = wikipedia.page(' '.join(args))
-
+            except DisambiguationError as e:
+                page = wikipedia.page(wikipedia.search(' '.join(args), results=1)[0])
             segments = [
                 hangups.ChatMessageSegment(page.title, hangups.SegmentType.LINK, is_bold=True, link_target=page.url),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment(wikipedia.summary(page.original_title, sentences=sentences))]
+                hangups.ChatMessageSegment(page.summary(sentences=sentences))]
 
             bot.send_message_segments(event.conv, segments)
         except PageError:
-            bot.send_message(event.conv, "Couldn't find that {}. Try something else.".format(' '.join(args)))
+            bot.send_message(event.conv, "Couldn't find \"{}\". Try something else.".format(' '.join(args)))
 
 
 @command.register
