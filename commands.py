@@ -590,10 +590,10 @@ def record(bot, event, *args):
             for name in glob.glob(directory + "\\" + '*.txt'):
                 with open(name) as f:
                     contents = f.read()
-                if term in contents:
+                if term.lower() in contents.lower():
                     foundin.append(name.replace(directory, "").replace(".txt", "").replace("\\", ""))
             if len(foundin) > 0:
-                segments = [hangups.ChatMessageSegment("Search Term [" + term + "] found in these records: "),
+                segments = [hangups.ChatMessageSegment("[" + term + "] found in: "),
                             hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK)]
                 for file in foundin:
                     segments.append(hangups.ChatMessageSegment(file))
