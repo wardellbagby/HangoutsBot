@@ -106,7 +106,6 @@ class MessageHandler(object):
                 # Run command
                 if event.text[1] == '?':
                     event.text = "/help"
-                    self.bot.send_message(event.conv, event.text)
                 yield from self.handle_command(event)
             else:
                 # Forward messages
