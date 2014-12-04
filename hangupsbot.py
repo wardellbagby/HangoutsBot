@@ -85,8 +85,8 @@ class HangupsBot(object):
             self.send_message_segments = dev_send_segments
             self.send_message = dev_send
         else:
-            self.send_message_segments = self.send_message_segments
-            self.send_message = self.send_message
+            self.send_message_segments = HangupsBot("cookies.txt", "config.json").send_message_segments
+            self.send_message = HangupsBot("cookies.txt", "config.json").send_message
 
 
     def restart(self):
