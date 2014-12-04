@@ -162,6 +162,17 @@ def udefine(bot, event, *args):
                 bot.send_message_segments(event.conv, segments)
 
 
+
+@command.register
+def test(bot, event, *args):
+    segments = [
+        hangups.ChatMessageSegment("title", is_bold=True, hangups.SegmentType.LINK, link_target="www.google.com"),
+        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)`]
+
+    bot.send_message_segments(event.conv, segments)
+
+
+
 @command.register
 def wiki(bot, event, *args):
     if ''.join(args) == '?':
