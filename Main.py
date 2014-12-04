@@ -19,13 +19,33 @@ class Main:
             Main.bot = sys.argv[1]
         if Main.bot is not None:
             Main.bot.stop()
-        Main.bot = HangupsBot("cookies.txt", "config.json")
-        # if sys.argv["bot"] is None:
-        #     Main.bot = HangupsBot("cookies.txt", "config.json")
-        # else:
-        #     Main.bot = sys.argv["bot"]
-        #     if sys["event"] is not None:
-        #         Main.bot.send_message(sys["event"].conv, "Hello world")
+        # Main.bot = HangupsBot("cookies.txt", "config.json")
+
+        index = -1
+        for x in range(sys.argv):
+            if isinstance(sys.argv[x], dict):
+                if sys.argv[x]["isSettings"]:
+                    index = x
+
+        if index != -1:
+            settings = sys.argv[index]
+        else:
+            settings = {}
+            sys.argv.append(settings)
+            index = len(sys.argv)-1
+            settings["isSettings"] = True
+            settings[index]["bot"] = None
+            settings[index]["event"] = None
+
+        if settings["bot"] is None:
+            Main.bot = HangupsBot("cookies.txt", "config.json")
+            settings["bot"] = Main.bot
+        else:
+            Main.bot = settings["bot"]
+            if settings["event"] is not None:
+                Main.bot.send_message(settings["event"].conv, "Hello world")
+                
+        sys.argv[index] = settings
         Main.bot.run()
 
 
