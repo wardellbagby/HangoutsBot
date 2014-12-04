@@ -34,8 +34,8 @@ class Main:
             sys.argv.append(settings)
             index = len(sys.argv)-1
             settings["isSettings"] = True
-            settings[index]["bot"] = None
-            settings[index]["event"] = None
+            settings["bot"] = None
+            settings["event"] = None
 
         if settings["bot"] is None:
             Main.bot = HangupsBot("cookies.txt", "config.json")
