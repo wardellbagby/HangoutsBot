@@ -19,12 +19,12 @@ class Main:
             Main.bot = sys.argv[1]
         if Main.bot is not None:
             Main.bot.stop()
-        if sys.argv["bot"] is None:
+        # if sys.argv["bot"] is None:
             Main.bot = HangupsBot("cookies.txt", "config.json")
-        else:
-            Main.bot = sys.argv["bot"]
-            if sys["event"] is not None:
-                Main.bot.send_message(sys["event"].conv, "Hello world")
+        # else:
+        #     Main.bot = sys.argv["bot"]
+        #     if sys["event"] is not None:
+        #         Main.bot.send_message(sys["event"].conv, "Hello world")
         Main.bot.run()
 
 
