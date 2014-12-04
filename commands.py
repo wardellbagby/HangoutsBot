@@ -785,9 +785,8 @@ def restart(bot, event, *args):
 
     index = get_settings_index()
     if index != -1:
-        settings = sys.argv[get_settings_index()]
-        settings["bot"] = bot
-        settings["event"] = event
+        sys.argv[index]["bot"] = bot
+        sys.argv[index]["event"] = event
     quit(bot, event, args)
     execfile('Main.py')
 

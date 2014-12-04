@@ -16,6 +16,7 @@ class Main:
         # This commands auto updates the project. Please have Git installed and in your PATH variable on Windows.
         os.system("git pull")
 
+        run = True
         index = -1
         for x in range(0, len(sys.argv)):
             if isinstance(sys.argv[x], dict):
@@ -27,7 +28,7 @@ class Main:
         else:
             settings = {}
             sys.argv.append(settings)
-            index = len(sys.argv)-1
+            index = len(sys.argv) - 1
             settings["isSettings"] = True
             settings["bot"] = None
             settings["event"] = None
@@ -37,11 +38,13 @@ class Main:
             settings["bot"] = Main.bot
         else:
             Main.bot = settings["bot"]
+            run = False
             if settings["event"] is not None:
-                Main.bot.send_message(settings["event"].conv, "Hello world")
-                
+                Main.bot.send_message(settings["event"].conv, "I'm Back")
+
         sys.argv[index] = settings
-        Main.bot.run()
+        if run:
+            Main.bot.run()
 
 
 Main().start()
