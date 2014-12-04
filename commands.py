@@ -767,6 +767,7 @@ def restart(bot, event, *args):
         settings = sys.argv[get_settings_index()]
         settings["bot"] = bot
         settings["event"] = event
+    quit(bot, event, args)
     execfile('Main.py')
 
 
