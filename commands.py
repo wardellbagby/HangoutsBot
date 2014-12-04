@@ -165,10 +165,10 @@ def udefine(bot, event, *args):
 
 @command.register
 def test(bot, event, *args):
-    segments = [
-        hangups.ChatMessageSegment("title", is_bold=True, hangups.SegmentType.LINK, link_target="www.google.com"),
-        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)`]
-
+    ''.join(args)
+    segments = [hangups.ChatMessageSegment("title", is_bold=True,
+                                           hangups.SegmentType.LINK, link_target="www.google.com"),
+                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
     bot.send_message_segments(event.conv, segments)
 
 
