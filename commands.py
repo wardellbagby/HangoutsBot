@@ -15,6 +15,7 @@ import hangups
 from hangups.ui.utils import get_conv_name
 import requests
 from wikia import wikia, WikiaError
+from setuptools.compat import execfile
 
 import Genius
 from UtilBot import UtilBot
@@ -162,7 +163,6 @@ def udefine(bot, event, *args):
                 bot.send_message_segments(event.conv, segments)
 
 
-
 @command.register
 def test(bot, event, *args):
     ''.join(args)
@@ -171,7 +171,6 @@ def test(bot, event, *args):
                                            is_bold=True, link_target="www.google.com"),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
     bot.send_message_segments(event.conv, segments)
-
 
 
 @command.register
@@ -759,10 +758,27 @@ def trash(bot, event, *args):
 
 @command.register
 def restart(bot, event, *args):
-    import os
+    bot.send_message(event.conv, "Excuse me while I...")
 
-    os.system('python Main.py')
-    quit(bot, event, args)
+    import sys
+
+    index = get_settings_index()
+    if index != -1:
+        settings = sys.argv[get_settings_index()]
+        settings["bot"] = bot
+        settings["event"] = event
+    execfile('Main.py')
+
+
+def get_settings_index():
+    import sys
+
+    index = -1
+    for x in range(0, len(sys.argv)):
+        if isinstance(sys.argv[x], dict):
+            if sys.argv[x]["isSettings"]:
+                index = x
+    return index
 
 
 @command.register
