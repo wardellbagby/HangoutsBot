@@ -15,11 +15,6 @@ class Main:
     def start():
         # This commands auto updates the project. Please have Git installed and in your PATH variable on Windows.
         os.system("git pull")
-        if len(sys.argv) > 1 and sys.argv[1] is not None:
-            Main.bot = sys.argv[1]
-        if Main.bot is not None:
-            Main.bot.stop()
-        # Main.bot = HangupsBot("cookies.txt", "config.json")
 
         index = -1
         for x in range(0, len(sys.argv)):

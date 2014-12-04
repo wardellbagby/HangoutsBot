@@ -282,6 +282,19 @@ def ping(bot, event, *args):
 
 
 @command.register
+def marco(bot, event, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Marco', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /marco'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Another easy way to check if Bot is running.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        bot.send_message(event.conv, 'polo')
+
+
+@command.register
 def echo(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Echo', is_bold=True),
