@@ -13889,6 +13889,7 @@ lorraine
 lorry
 losable
 lose
+loser
 loss
 lossy
 lost
