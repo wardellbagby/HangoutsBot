@@ -22,7 +22,7 @@ class Main:
         # Main.bot = HangupsBot("cookies.txt", "config.json")
 
         index = -1
-        for x in range(sys.argv):
+        for x in range(0, len(sys.argv)):
             if isinstance(sys.argv[x], dict):
                 if sys.argv[x]["isSettings"]:
                     index = x
