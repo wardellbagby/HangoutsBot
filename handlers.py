@@ -143,9 +143,10 @@ class MessageHandler(object):
         if commands_admin_list and line_args[0].lower().replace('/', '') in commands_admin_list:
             admins_list = self.bot.get_config_suboption(event.conv_id, 'admins')
             if event.user_id.chat_id not in admins_list:
-                self.bot.send_message(event.conv,
-                                      '{}: I\'m sorry, Dave. I\'m afraid I can\'t do that.'.format(
-                                          event.user.full_name))
+                if not self.bot.dev:
+                    self.bot.send_message(event.conv,
+                                          '{}: I\'m sorry, Dave. I\'m afraid I can\'t do that.'.format(
+                                              event.user.full_name))
                 return
 
         # Run command
