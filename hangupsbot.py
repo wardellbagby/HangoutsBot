@@ -51,6 +51,7 @@ class HangupsBot(object):
 
         # Load config file
         self.config = config.Config(config_path)
+        self.get_config_suboption('', 'development_mode')
 
         # Handle signals on Unix
         # (add_signal_handler is not implemented on Windows)
@@ -60,6 +61,26 @@ class HangupsBot(object):
                 loop.add_signal_handler(signum, lambda: self.stop())
         except NotImplementedError:
             pass
+
+    @property
+    def dev(self):
+        return self.devmode
+
+    @dev.setter
+    def dev(self, value):
+        if value:
+            self.devmode = value
+        else:
+            self.devmode = False
+        if self.devmode:
+            def devsend(conversation, segments):
+                if len(segments) == 0:
+                    return
+                for segment in segments:
+                    print(segment.text if not segment.type_ == hangups.SegmentType.LINE_BREAK else "\n")
+
+            self.send_message_segments = devsend
+
 
     def restart(self):
         self.stop()

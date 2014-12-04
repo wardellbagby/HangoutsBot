@@ -85,6 +85,14 @@ def help(bot, event, *args):
 
 
 @command.register
+def devmode(bot, event, *args):
+    if ''.join(args) == "on":
+        bot.dev = True
+    else:
+        bot.dev = False
+
+
+@command.register
 def define(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Define', is_bold=True),
