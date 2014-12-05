@@ -58,7 +58,7 @@ Any function created in the commands.py file and decorated with the command.regi
 
 ```python  
 @command.register
-def new__function_for_bot(bot, event, *args):
+def function_for_bot(bot, event, *args):
      if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('New Function For Bot', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
