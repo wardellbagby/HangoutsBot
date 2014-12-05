@@ -1,20 +1,18 @@
+from datetime import datetime
 from fractions import Fraction
 import glob
 import os
-import string
 import json
 import random
 import asyncio
+import traceback
 from urllib import parse
 from urllib import request
 import urllib
-import re
 
-import goslate
 import hangups
 from hangups.ui.utils import get_conv_name
 import requests
-from wikia import wikia, WikiaError
 from setuptools.compat import execfile
 
 import Genius
@@ -48,7 +46,10 @@ class CommandDispatcher(object):
         try:
             yield from func(bot, event, *args, **kwds)
         except Exception as e:
-            print(e)
+            log = open('log.txt', 'a+')
+            log.writelines(str(datetime.now()) + ":\n " + traceback.format_exc() + "\n\n")
+            log.close()
+            print(traceback.format_exc())
 
     def register(self, func):
         """Decorator for registering command"""
@@ -172,16 +173,6 @@ def udefine(bot, event, *args):
 
 
 @command.register
-def test(bot, event, *args):
-    ''.join(args)
-    segments = [hangups.ChatMessageSegment("title"),
-                hangups.ChatMessageSegment("title", hangups.SegmentType.LINK,
-                                           is_bold=True, link_target="www.google.com"),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-    bot.send_message_segments(event.conv, segments)
-
-
-@command.register
 def wiki(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Wikipedia', is_bold=True),
@@ -279,19 +270,6 @@ def ping(bot, event, *args):
         bot.send_message_segments(event.conv, segments)
     else:
         bot.send_message(event.conv, 'pong')
-
-
-@command.register
-def marco(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Marco', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /marco'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Another easy way to check if Bot is running.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        bot.send_message(event.conv, 'polo')
 
 
 @command.register
@@ -434,67 +412,6 @@ def leave(bot, event, conversation=None, *args):
                 hangups.ChatMessageSegment('I\'ll be back!')
             ])
             yield from bot._conv_list.leave_conversation(c.id_)
-
-
-@command.register
-def destiny(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Destiny', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Usage: /destiny <keyword to search for> <optional: characters to display [default = 500]>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Get information about a Destiny topic.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        try:
-            characters = 500
-
-            if args[-1].isdigit():
-                characters = args[-1]
-                page = wikia.page('Destiny', wikia.search(' '.join(args[0:-1]), 'destiny')[0])
-            else:
-                page = wikia.page('Destiny', wikia.search(' '.join(args), 'destiny')[0])
-            segments = [
-                hangups.ChatMessageSegment(page.title.title(), hangups.SegmentType.LINK, is_bold=True,
-                                           link_target=page.url),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment(wikia.summary(page.original_title, 'Destiny', chars=characters))]
-
-            bot.send_message_segments(event.conv, segments)
-        except WikiaError:
-            bot.send_message(event.conv, "Couldn't find '{}'. Try something else.".format(' '.join(args)))
-
-
-@command.register
-def guessthesong(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Guess The Song', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Usage: /guessthesong <lyric in song>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Guessing a song!')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        regex = re.compile('[%s]' % re.escape(string.punctuation))
-        results = 1
-        if args[-1].isdigit():
-            results = int(args[-1])
-
-        lyric = regex.sub('', ' '.join(args))
-        songs = Genius.search_songs(lyric)
-        results = len(songs) if results > len(songs) else results
-        segments = []
-
-        for x in range(0, results):
-            segments.append(hangups.ChatMessageSegment(songs[x].name))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-        if len(segments) == 0:
-            bot.send_message(event.conv, "I couldn't guess the song...")
-        else:
-            bot.send_message_segments(event.conv, segments)
 
 
 @command.register
@@ -666,45 +583,6 @@ def record(bot, event, *args):
 
 
 @command.register
-def obscure(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Obscure', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Usage: /obscure <text to obscure> <optional: number of times to obscure>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Purpose: Runs your text through Google Translate a lot. Defaults to 14 times.)')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        translator = goslate.Goslate()
-        languages = ['en', 'de', 'af', 'zh-CN', 'xx-elmer', 'fi', 'fr', 'xx-pirate', 'ro',
-                     'es', 'sk', 'tr', 'vi', 'cy']
-        showall = False
-        if args[-1] == '*':
-            showall = True
-            args = args[0:-1]
-        times = len(languages)
-        if args[-1].isdigit():
-            times = int(args[-1])
-            args = args[0:-1]
-        text = ' '.join(args)
-        translations = [hangups.ChatMessageSegment(text),
-                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-        for x in range(0, times):
-            text = translator.translate(text, languages[random.randint(0, len(languages) - 1)])
-            if showall:
-                translations.append(hangups.ChatMessageSegment(text))
-                translations.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-        text = translator.translate(text, 'en')
-        if showall:
-            translations.append(hangups.ChatMessageSegment(text))
-            bot.send_message_segments(event.conv, translations)
-        else:
-            bot.send_message(event.conv, text)
-
-
-@command.register
 def clear(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Clear', is_bold=True),
@@ -731,15 +609,6 @@ def clear(bot, event, *args):
                     hangups.ChatMessageSegment('<!END PROTOCOL>', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('So how was your day?', hangups.SegmentType.LINE_BREAK)]
         bot.send_message_segments(event.conv, segments)
-
-
-# @command.register
-# def easteregg(bot, event, easteregg, eggcount=1, period=0.5, *args):
-#
-# for i in range(int(eggcount)):
-# yield from bot._client.sendeasteregg(event.conv_id, easteregg)
-# if int(eggcount) > 1:
-# yield from asyncio.sleep(float(period) + random.uniform(-0.1, 0.1))
 
 
 @command.register
@@ -946,32 +815,3 @@ def flip(bot, event, *args):
                          Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
 
 
-@command.register
-def fortune(bot, event, *args):
-    """Give a random fortune"""
-    url = "http://www.fortunecookiemessage.com"
-    html = request.urlopen(url).read().decode('utf-8')
-    m = re.search("class=\"cookie-link\">(<p>)?", html)
-    m = re.search("(</p>)?</a>", html[m.end():])
-    bot.send_message(event.conv, m.string[:m.start()])
-
-
-@command.register
-def acrostic(bot, event, *args):
-    words = open('wordlist.txt').read().strip().split()
-    for arg in args:
-        letters = [letter.lower() for letter in arg]
-        random_words = []
-        for index, letter in enumerate(letters):
-            if index == len(arg) - 1:
-                random_words.append(
-                    random.choice([word for word in words if word[0].lower() == letter and word[len(word) - 2] != "'"]))
-            else:
-                random_words.append(random.choice([word for word in words if word[0].lower() == letter]))
-
-        random_words = " ".join([word[0].upper() + word[1:] for word in random_words])
-
-        msg = "".join([letter.upper() for letter in letters]) + ": " + random_words
-        bot.send_message(event.conv, msg)
-
-# TODO Add a name function.

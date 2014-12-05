@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # coding=utf-8
+from datetime import datetime
 import sys
 import asyncio
 import time
 import signal
+import traceback
 
 import hangups
 from hangups.ui.utils import get_conv_name
@@ -107,7 +109,6 @@ class HangupsBot(object):
     def run(self):
         """Connect to Hangouts and run bot"""
         cookies = self.login(self._cookies_path)
-        log = open('log.txt', 'a+')
         if cookies:
             # Create Hangups client
             self._client = hangups.Client(cookies)
@@ -123,7 +124,10 @@ class HangupsBot(object):
                     sys.exit(0)
                 except Exception as e:
                     print('Client unexpectedly disconnected:\n{}'.format(e))
-                    log.writelines(e)
+                    log = open('log.txt', 'a+')
+                    log.writelines(str(datetime.now()) + ":\n " + traceback.format_exc() + "\n\n")
+                    log.close()
+                    print(traceback.format_exc())
                     print('Waiting {} seconds...'.format(5 + retry * 5))
                     time.sleep(5 + retry * 5)
                     print('Trying to connect again (try {} of {})...'.format(retry + 1, self._max_retries))
