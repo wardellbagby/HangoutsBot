@@ -32,6 +32,7 @@ class UtilBot:
         return string.replace("&#39", "'")
 
     @staticmethod
+    # TODO This needs a better name... Is actually the define function.
     def search(word, num=1):
         if num < 1:
             num = 1

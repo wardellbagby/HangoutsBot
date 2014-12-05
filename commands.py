@@ -95,6 +95,7 @@ def devmode(bot, event, *args):
 
 @command.register
 def define(bot, event, *args):
+    # TODO This define doesn't pull from a very good site. Try to find a more reputable dictionary.
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Define', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -814,4 +815,12 @@ def flip(bot, event, *args):
                          heads) + " Tails: " + str(tails) + " Ratio: " + (str(
                          Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
 
+
+@command.register
+def add(bot, event, *args):
+    if args[0] == "word":
+        args = args[1:]
+        from BotCommands import BotCommands
+
+        BotCommands.add_word(''.join(args))
 
