@@ -272,6 +272,10 @@ def ping(bot, event, *args):
     else:
         bot.send_message(event.conv, 'pong')
 
+@command.register
+def marco(bot, event, *args):
+    bot.send_message(event.conv, 'polo')
+
 
 @command.register
 def echo(bot, event, *args):
