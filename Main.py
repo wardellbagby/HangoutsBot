@@ -14,7 +14,7 @@ class Main:
     @staticmethod
     def start():
         # This commands auto updates the project. Please have Git installed and in your PATH variable on Windows.
-        os.system("git pull")
+        #os.system("git pull")
 
         run = True
         index = -1

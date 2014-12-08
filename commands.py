@@ -21,6 +21,9 @@ from utils import text_to_segments
 
 
 class CommandDispatcher(object):
+    last_recorder = None
+    last_recorded = None
+
     def __init__(self):
         self.commands = {}
         self.unknown_command = None
@@ -526,6 +529,18 @@ def record(bot, event, *args):
                 segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
                 segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
             bot.send_message_segments(event.conv, segments)
+        elif args[0] == "strike":
+            if event.user.id_ == CommandDispatcher.last_recorder:
+                file = open(directory + '\\' + filename, "a+")
+                file.seek(0)
+                file_lines = file.readlines()
+                if CommandDispatcher.last_recorded is not None and CommandDispatcher.last_recorded in file_lines:
+                    file_lines.remove(CommandDispatcher.last_recorded)
+                file.seek(0)
+                file.truncate()
+                file.writelines(file_lines)
+            else:
+                bot.send_message(event.conv, "You do not have the authority to strike from the Record.")
         elif args[0] == "list":
             files = os.listdir(directory)
             segments = []
@@ -579,6 +594,8 @@ def record(bot, event, *args):
             file = open(directory + '\\' + filename, "a+")
             file.write(' '.join(args) + '\n')
             bot.send_message(event.conv, "Record saved successfully.")
+            CommandDispatcher.last_recorder = event.user.id_
+            CommandDispatcher.last_recorded = ' '.join(args) + '\n'
         if file is not None:
             file.close()
 
