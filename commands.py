@@ -453,20 +453,20 @@ def finish(bot, event, *args):
 
                 if currmin[1] > distance:
                     currmin = (x, distance)
-                if currlyric.startswith('['):
+                if currlyric.startswith('[') and currlyric not in anchors:
                     next = UtilBot.find_next_non_blank(lyrics, x)
-                    anchors[currlyric] = lyrics[next][0]
-                if lyric in anchors:
-                    bot.send_message(event.conv, str(anchors[lyric]))
-                    return
+                    anchors[currlyric] = lyrics[next]
             except Exception:
                 # TODO Sometimes this throws a 'string index out of range' error. I'm not sure why. Or where.
+                # (Potentially) fixed
                 # try "/finish And as I wind on down the road" to get it to occur.
                 # It isn't a priority, 'cause it still find the right lyric usually.
                 pass
         next = UtilBot.find_next_non_blank(lyrics, currmin[0])
         chopped = lyrics[currmin[0]][1]
         foundlyric = lyrics[currmin[0]][0] + " " + lyrics[next][0] if chopped else lyrics[next][0]
+        if foundlyric.startswith('['):
+            foundlyric = anchors[foundlyric]
         if showguess:
             segments = [hangups.ChatMessageSegment(foundlyric),
                         hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -736,7 +736,6 @@ def status(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Shows current status.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        import handlers
 
         segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -764,7 +763,6 @@ def reload(bot, event, *args):
 def quit(bot, event, *args):
     print('HangupsBot killed by user {} from conversation {}'.format(event.user.full_name,
                                                                      get_conv_name(event.conv, truncate=True)))
-    bot.send_message(event.conv, "Creator, why hast thou forsaken me?!")
     yield from bot._client.disconnect()
 
 

@@ -6,27 +6,6 @@ __author__ = 'wardellchandler'
 
 # To keep from crowding up the handlers.py handle method, try to out source to here.
 class UtilBot:
-    def __init__(self):
-        UtilBot.words = open("wordlist.txt")
-        UtilBot.list = []
-        for line in UtilBot.words:
-            UtilBot.list.append(line.strip('\n'))
-
-    def unhashtag(self, message):
-        hashtagged = str(message)
-        withspaces = ""
-        if hashtagged[0] == '#':
-            hashtagged = hashtagged[1:]
-        x = len(hashtagged)
-        while x > 0:
-            if hashtagged[0:x].upper() in (word.upper() for word in self.list):
-                withspaces += hashtagged[0:x] + " "
-                hashtagged = hashtagged[x:]
-                x = len(hashtagged)
-            else:
-                x -= 1
-        return "Unhashtagged: " + withspaces + "[" + hashtagged + "]".title()
-
     @staticmethod
     def check(string):
         return string.replace("&#39", "'")
@@ -79,7 +58,12 @@ class UtilBot:
     @staticmethod
     def find_next_non_blank(list, start=0):
         for x in range(start + 1, len(list)):
-            if not str.isspace(list[x][0]):
+            if isinstance(list[x], tuple):
+                tocheck = list[x][0]
+            else:
+                tocheck = list[x]
+            tocheck = tocheck.replace(' ', '')
+            if tocheck != '':
                 return x
 
 
