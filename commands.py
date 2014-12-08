@@ -497,6 +497,9 @@ def record(bot, event, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
                         'Usage: /record search <search term>'),
+                    hangups.ChatMessageSegment(
+                        'Usage: /record strike'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
                         'Usage: /record'),
@@ -539,6 +542,8 @@ def record(bot, event, *args):
                 file.seek(0)
                 file.truncate()
                 file.writelines(file_lines)
+                CommandDispatcher.last_recorded = None
+                CommandDispatcher.last_recorder = None
             else:
                 bot.send_message(event.conv, "You do not have the authority to strike from the Record.")
         elif args[0] == "list":
