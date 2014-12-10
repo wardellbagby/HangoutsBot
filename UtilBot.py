@@ -198,7 +198,7 @@ class UtilBot:
 
     @staticmethod
     def is_haiku(message):
-        message = message.lower()
+        message = message.lower().replace('\xa0', " ")
         import string
 
         for c in string.punctuation:
@@ -211,7 +211,7 @@ class UtilBot:
 
     @staticmethod
     def convert_to_haiku(message):
-        message = message.lower()
+        message = message.lower().replace('\xa0', " ")
 
         words_with_puncs = message.split(' ')
         import string
