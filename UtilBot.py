@@ -1,5 +1,6 @@
 from urllib import request
 from xml.dom import minidom
+from bs4 import BeautifulSoup, Tag
 
 __author__ = 'wardellchandler'
 
@@ -12,21 +13,20 @@ class UtilBot:
 
     @staticmethod
     # TODO This needs a better name... Is actually the define function.
-    def search(word, num=1):
+    def define(word, num=1):
         if num < 1:
             num = 1
         try:
-            url = "http://services.aonaware.com/DictService/DictService.asmx/Define?word=" + word
-            reponse = request.urlopen(url)
+            url = "http://wordnetweb.princeton.edu/perl/webwn?s=" + word + "&sub=Search+WordNet&o2=&o0=&o8=1&o1=1&o7=&o5=&o9=&o6=&o3=&o4=&h=0000000000"
         except Exception as e:
             print(e)
             return 'Couldn\'t download definition.'
-        xmldoc = minidom.parseString(reponse.read().decode())
-        deflist = xmldoc.getElementsByTagName('WordDefinition')
-        if len(deflist) - 1 > num:
-            return str(deflist[num].firstChild.nodeValue) + '[{} out of {}]'.format(num, len(deflist) - 1)
-        else:
-            return "Couldn't find definition for {}.".format(word)
+        soup = BeautifulSoup(request.urlopen(url))
+        if soup.ul is not None:
+            definitions = [x.text for x in list(soup.ul) if isinstance(x, Tag) and x.text != '\n' and x.text != '']
+            if len(definitions) >= num:
+                return (definitions[num - 1] + '[' + str(num) + ' of ' + str(len(definitions)) + ']')[3:].capitalize()
+        return "Couldn\'t download definition."
 
     @staticmethod
     def levenshtein_distance(first, second):

@@ -112,13 +112,13 @@ def define(bot, event, *args):
             segments = [hangups.ChatMessageSegment(' '.join(args[0:-1]).title(), is_bold=True),
                         hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                         hangups.ChatMessageSegment(
-                            UtilBot.search(' '.join(args[0:-1]), num=int(args[-1])).replace('\n', ''))]
+                            UtilBot.define(' '.join(args[0:-1]), num=int(args[-1])).replace('\n', ''))]
             bot.send_message_segments(event.conv, segments)
         else:
             segments = [hangups.ChatMessageSegment(' '.join(args).title(), is_bold=True),
                         hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                         hangups.ChatMessageSegment(
-                            UtilBot.search(' '.join(args)).replace('\n', ''))]
+                            UtilBot.define(' '.join(args)).replace('\n', ''))]
             bot.send_message_segments(event.conv, segments)
 
 
@@ -829,11 +829,14 @@ def flip(bot, event, *args):
             heads += 1
         else:
             tails += 1
-    bot.send_message(event.conv,
-                     "Winner: " + (
-                         "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
-                         heads) + " Tails: " + str(tails) + " Ratio: " + (str(
-                         Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
+    if times == 1:
+        bot.send_message(event.conv, "Heads!" if heads > tails else "Tails!")
+    else:
+        bot.send_message(event.conv,
+                         "Winner: " + (
+                             "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
+                             heads) + " Tails: " + str(tails) + " Ratio: " + (str(
+                             Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
 
 
 @command.register
