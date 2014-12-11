@@ -12,7 +12,6 @@ class UtilBot:
         return string.replace("&#39", "'")
 
     @staticmethod
-    # TODO This needs a better name... Is actually the define function.
     def define(word, num=1):
         if num < 1:
             num = 1
@@ -228,7 +227,7 @@ class UtilBot:
         while index < len(words) and lines < 3:
             total += UtilBot.syllable_count(words[index])
             if total > current_measure:
-                return 'False'
+                return None
             if total == current_measure:
                 current_measure = 7 if current_measure == 5 else 5
                 haiku += ' '.join(words_with_puncs[start:index + 1]).capitalize() + '\n'

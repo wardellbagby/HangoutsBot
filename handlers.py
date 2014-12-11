@@ -79,7 +79,7 @@ class MessageHandler(object):
             import commands
 
             commands.shutup(self.bot, event)
-
+        event.text = event.text.replace('\xa0', ' ')
         textuppers = str(event.text).upper()
         if not event.user.is_self and not event.text.startswith('/'):
             from UtilBot import UtilBot
@@ -89,12 +89,14 @@ class MessageHandler(object):
             elif UtilBot.is_haiku(textuppers):
                 segments = [hangups.ChatMessageSegment('Haiku: ', is_bold=True),
                             hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-                lines = UtilBot.convert_to_haiku(textuppers).split('\n')
-                for line in lines:
-                    segments.append(hangups.ChatMessageSegment(line))
-                    segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-                segments.pop()
-                self.bot.send_message_segments(event.conv, segments)
+                lines = UtilBot.convert_to_haiku(textuppers)
+                if lines is not None:
+                    lines = lines.split('\n')
+                    for line in lines:
+                        segments.append(hangups.ChatMessageSegment(line))
+                        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+                    segments.pop()
+                    self.bot.send_message_segments(event.conv, segments)
             elif "🚮" in str(event.text):
                 self.bot.send_message(event.conv, "🚮")
             elif textuppers.endswith('?!'):

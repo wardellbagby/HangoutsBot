@@ -40,7 +40,7 @@ class Main:
             Main.bot = settings["bot"]
             run = False
             if settings["event"] is not None:
-                Main.bot.send_message(settings["event"].conv, "I'm Back")
+                Main.bot.send_message(settings["event"].conv, "Reconnected.")
 
         sys.argv[index] = settings
         if run:

@@ -9,6 +9,7 @@ import traceback
 from urllib import parse
 from urllib import request
 import urllib
+from bs4 import BeautifulSoup
 
 import hangups
 from hangups.ui.utils import get_conv_name
@@ -90,15 +91,23 @@ def help(bot, event, *args):
 
 @command.register
 def devmode(bot, event, *args):
-    if ''.join(args) == "on":
-        bot.dev = True
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Development Mode', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /devmode <on|off>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Purpose: When development mode is on, all outputted text will go to the Python console instead of the Hangouts chat.')]
+        bot.send_message_segments(event.conv, segments)
     else:
-        bot.dev = False
+        if ''.join(args) == "on":
+            bot.dev = True
+        else:
+            bot.dev = False
 
 
 @command.register
 def define(bot, event, *args):
-    # TODO This define doesn't pull from a very good site. Try to find a more reputable dictionary.
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Define', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -399,7 +408,7 @@ def leave(bot, event, conversation=None, *args):
                     hangups.ChatMessageSegment('Usage: /leave'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Purpose: Lies to you.')]
+                        'Purpose: Leaves the chat room.')]
         bot.send_message_segments(event.conv, segments)
     else:
         convs = []
@@ -467,16 +476,16 @@ def finish(bot, event, *args):
                 pass
         next = UtilBot.find_next_non_blank(lyrics, currmin[0])
         chopped = lyrics[currmin[0]][1]
-        foundlyric = lyrics[currmin[0]][0] + " " + lyrics[next][0] if chopped else lyrics[next][0]
-        if foundlyric.startswith('['):
-            foundlyric = anchors[foundlyric]
+        found_lyric = lyrics[currmin[0]][0] + " " + lyrics[next][0] if chopped else lyrics[next][0]
+        if found_lyric.startswith('['):
+            found_lyric = anchors[found_lyric]
         if showguess:
-            segments = [hangups.ChatMessageSegment(foundlyric),
+            segments = [hangups.ChatMessageSegment(found_lyric),
                         hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                         hangups.ChatMessageSegment(songs[0].name)]
             bot.send_message_segments(event.conv, segments)
         else:
-            bot.send_message(event.conv, foundlyric)
+            bot.send_message(event.conv, found_lyric)
 
         return
 
@@ -671,16 +680,22 @@ def trash(bot, event, *args):
 
 @command.register
 def restart(bot, event, *args):
-    bot.send_message(event.conv, "Excuse me while I...")
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Restart', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /restart'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Restarts the bot and attempts to update.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        import sys
 
-    import sys
-
-    index = get_settings_index()
-    if index != -1:
-        sys.argv[index]["bot"] = bot
-        sys.argv[index]["event"] = event
-    quit(bot, event, args)
-    execfile('Main.py')
+        index = get_settings_index()
+        if index != -1:
+            sys.argv[index]["bot"] = bot
+            sys.argv[index]["event"] = event
+        quit(bot, event, args)
+        execfile('Main.py')
 
 
 def get_settings_index():
@@ -692,7 +707,6 @@ def get_settings_index():
             if sys.argv[x]["isSettings"]:
                 index = x
     return index
-
 
 @command.register
 def mute(bot, event, *args):
@@ -819,31 +833,84 @@ def config(bot, event, cmd=None, *args):
 
 @command.register
 def flip(bot, event, *args):
-    times = 1
-    if len(args) > 0 and args[-1].isdigit():
-        times = int(args[-1]) if int(args[-1]) < 1000000 else 1000000
-    heads, tails = 0, 0
-    for x in range(0, times):
-        n = random.randint(0, 1)
-        if n == 1:
-            heads += 1
-        else:
-            tails += 1
-    if times == 1:
-        bot.send_message(event.conv, "Heads!" if heads > tails else "Tails!")
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Flip', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /flip <optional: number of times to flip>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Flips a coin.')]
+        bot.send_message_segments(event.conv, segments)
     else:
-        bot.send_message(event.conv,
-                         "Winner: " + (
-                             "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
-                             heads) + " Tails: " + str(tails) + " Ratio: " + (str(
-                             Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
+        times = 1
+        if len(args) > 0 and args[-1].isdigit():
+            times = int(args[-1]) if int(args[-1]) < 1000000 else 1000000
+        heads, tails = 0, 0
+        for x in range(0, times):
+            n = random.randint(0, 1)
+            if n == 1:
+                heads += 1
+            else:
+                tails += 1
+        if times == 1:
+            bot.send_message(event.conv, "Heads!" if heads > tails else "Tails!")
+        else:
+            bot.send_message(event.conv,
+                             "Winner: " + (
+                                 "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
+                                 heads) + " Tails: " + str(tails) + " Ratio: " + (str(
+                                 Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
 
 
 @command.register
 def add(bot, event, *args):
-    if args[0] == "word":
-        args = args[1:]
-        from BotCommands import BotCommands
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Add', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /add word <word to add>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Adds a word to the Unhashtagger.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        if args[0] == "word":
+            args = args[1:]
+            from BotCommands import BotCommands
 
-        BotCommands.add_word(''.join(args))
+            BotCommands.add_word(''.join(args))
 
+
+@command.register
+def quote(bot, event, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Quote', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /quote <optional: terms to search for> <optional: number of quote to show>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Shows a quote.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        USER_ID = "3696"
+        DEV_ID = "ZWBWJjlb5ImJiwqV"
+        QUERY_TYPE = "RANDOM"
+        fetch = 0
+        if args[-1].isdigit():
+            fetch = int(args[-1])
+            args = args[:-1]
+        query = '+'.join(args)
+        if len(query) > 0:
+            QUERY_TYPE = "SEARCH"
+        url = "http://www.stands4.com/services/v2/quotes.php?uid=" + USER_ID + "&tokenid=" + DEV_ID + "&searchtype=" + QUERY_TYPE + "&query=" + query
+        soup = BeautifulSoup(request.urlopen(url))
+        if QUERY_TYPE == "SEARCH":
+            children = list(soup.results.children)
+            numQuotes = len(children)
+
+            if fetch > numQuotes - 1:
+                fetch = numQuotes
+            elif fetch < 1:
+                fetch = 1
+            bot.send_message(event.conv,
+                             children[fetch].quote.text + ' ' + children[fetch - 1].author.text + ' [' + str(
+                                 fetch) + ' of ' + str(numQuotes - 1) + ']')
+        else:
+            bot.send_message(event.conv, soup.quote.text + ' ' + soup.author.text)
