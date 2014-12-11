@@ -202,7 +202,7 @@ class UtilBot:
 
         for c in string.punctuation:
             message = message.replace(c, "")
-        words = message.split(' ')
+        words = re.split('\s+', message)
         total = 0
         for word in words:
             total += UtilBot.syllable_count(word)
@@ -210,9 +210,10 @@ class UtilBot:
 
     @staticmethod
     def convert_to_haiku(message):
-        message = message.lower().replace('\xa0', " ")
+        message = message.replace('\xa0', " ")
 
-        words_with_puncs = message.split(' ')
+        words_with_puncs = re.split('\s+', message)
+        message = message.lower()
         import string
 
         for c in string.punctuation:
@@ -230,7 +231,7 @@ class UtilBot:
                 return None
             if total == current_measure:
                 current_measure = 7 if current_measure == 5 else 5
-                haiku += ' '.join(words_with_puncs[start:index + 1]).capitalize() + '\n'
+                haiku += ' '.join(words_with_puncs[start:index + 1]) + '\n'
                 total = 0
                 lines += 1
                 start = index + 1

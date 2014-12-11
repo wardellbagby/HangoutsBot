@@ -89,7 +89,7 @@ class MessageHandler(object):
             elif UtilBot.is_haiku(textuppers):
                 segments = [hangups.ChatMessageSegment('Haiku: ', is_bold=True),
                             hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-                lines = UtilBot.convert_to_haiku(textuppers)
+                lines = UtilBot.convert_to_haiku(event.text)
                 if lines is not None:
                     lines = lines.split('\n')
                     for line in lines:
@@ -101,9 +101,9 @@ class MessageHandler(object):
                 self.bot.send_message(event.conv, "🚮")
             elif textuppers.endswith('?!'):
                 self.bot.send_message(event.conv, "I agree with " + str(event.user.full_name) + '.')
-            elif "AMERICA" in str(event.text).upper():
+            elif "AMERICA" in textuppers:
                 self.bot.send_message(event.conv, "MURICA!!!!!!!")
-            elif "MURICA" in str(event.text).upper():
+            elif "MURICA" in textuppers:
                 self.bot.send_message(event.conv, "Fuck yeah!")
             elif not muted:
                 if (clever or (
