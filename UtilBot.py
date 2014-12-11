@@ -211,14 +211,12 @@ class UtilBot:
     @staticmethod
     def convert_to_haiku(message):
         message = message.replace('\xa0', " ")
-
-        words_with_puncs = re.split('\s+', message)
-        message = message.lower()
+        words_with_puncs = [x for x in re.split('\s+', message) if x != '' and x is not None]
         import string
 
         for c in string.punctuation:
             message = message.replace(c, "")
-        words = message.split(' ')
+        words = [x for x in message.split(' ') if x != '' and x is not None]
         total = 0
         start = 0
         index = 0
