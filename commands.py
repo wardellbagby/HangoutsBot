@@ -708,6 +708,7 @@ def get_settings_index():
                 index = x
     return index
 
+
 @command.register
 def mute(bot, event, *args):
     if ''.join(args) == '?':
@@ -893,7 +894,7 @@ def quote(bot, event, *args):
         DEV_ID = "ZWBWJjlb5ImJiwqV"
         QUERY_TYPE = "RANDOM"
         fetch = 0
-        if args[-1].isdigit():
+        if len(args) > 0 and args[-1].isdigit():
             fetch = int(args[-1])
             args = args[:-1]
         query = '+'.join(args)
@@ -904,13 +905,16 @@ def quote(bot, event, *args):
         if QUERY_TYPE == "SEARCH":
             children = list(soup.results.children)
             numQuotes = len(children)
+            if numQuotes == 0:
+                bot.send_message(event.conv, "Unable to find quote.")
+                return
 
             if fetch > numQuotes - 1:
                 fetch = numQuotes
             elif fetch < 1:
                 fetch = 1
-            bot.send_message(event.conv,
-                             children[fetch].quote.text + ' ' + children[fetch - 1].author.text + ' [' + str(
-                                 fetch) + ' of ' + str(numQuotes - 1) + ']')
+            bot.send_message(event.conv, "\"" +
+                             children[fetch-1].quote.text + "\"" + ' - ' + children[fetch - 1].author.text + ' [' + str(
+                fetch) + ' of ' + str(numQuotes) + ']')
         else:
-            bot.send_message(event.conv, soup.quote.text + ' ' + soup.author.text)
+            bot.send_message(event.conv, "\"" + soup.quote.text + "\"" + ' -' + soup.author.text)
