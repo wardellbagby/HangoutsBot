@@ -14,6 +14,7 @@ class MessageHandler(object):
     """Handle Hangups conversation events"""
     cleversession = -1
     dotalk = False
+    blocked_list = []
 
     def __init__(self, bot, bot_command='/'):
         self.bot = bot
@@ -24,6 +25,7 @@ class MessageHandler(object):
         factory = ChatterBotFactory()
         cleverbotter = factory.create(ChatterBotType.CLEVERBOT)
         MessageHandler.cleversession = cleverbotter.create_session()
+        MessageHandler.blocked_list = []
 
     @staticmethod
     def shutup(bot, event):
@@ -63,6 +65,8 @@ class MessageHandler(object):
     @asyncio.coroutine
     def handle(self, event):
         # Use this to add commands that are based off of what text the user inputs when it isn't a command.
+        if event.user.is_self or event.user_id in MessageHandler.blocked_list:
+            return
         if event.conv_id not in self.bot.conv_settings:
             self.bot.conv_settings[event.conv_id] = {}
         try:
@@ -81,7 +85,7 @@ class MessageHandler(object):
             commands.shutup(self.bot, event)
         event.text = event.text.replace('\xa0', ' ')
         textuppers = str(event.text).upper()
-        if not event.user.is_self and not event.text.startswith('/'):
+        if not event.text.startswith('/'):
             from UtilBot import UtilBot
 
             if event.text[0] == '#':

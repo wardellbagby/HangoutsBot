@@ -19,7 +19,7 @@ class BotCommands:
         self.names.append("WHISTLEBOT")
         self.names.append("ROBOT")
         self.names.append("COI")
-        self.nameregex = re.compile('(' + '|'.join(self.names) + ')[\s\.\?!:\',\";]+')
+        self.nameregex = re.compile('\b(' + '|'.join(self.names) + ')\b')
 
 
     @staticmethod

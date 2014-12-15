@@ -9,8 +9,8 @@ import traceback
 from urllib import parse
 from urllib import request
 import urllib
-from bs4 import BeautifulSoup
 
+from bs4 import BeautifulSoup
 import hangups
 from hangups.ui.utils import get_conv_name
 import requests
@@ -914,7 +914,20 @@ def quote(bot, event, *args):
             elif fetch < 1:
                 fetch = 1
             bot.send_message(event.conv, "\"" +
-                             children[fetch-1].quote.text + "\"" + ' - ' + children[fetch - 1].author.text + ' [' + str(
+                             children[fetch - 1].quote.text + "\"" + ' - ' + children[
+                fetch - 1].author.text + ' [' + str(
                 fetch) + ' of ' + str(numQuotes) + ']')
         else:
             bot.send_message(event.conv, "\"" + soup.quote.text + "\"" + ' -' + soup.author.text)
+
+
+@command.register
+def block(bot, event, username, *args):
+    username_lower = username.strip().lower()
+    for u in sorted(bot._user_list._user_dict.values(), key=lambda x: x.full_name.split()[-1]):
+        if not username_lower in u.full_name.lower():
+            continue
+        from handlers import MessageHandler
+
+        MessageHandler.blocked_list.append(u.id_)
+        bot.send_message(event.conv, "Blocked User: {}".format(u.full_name))
