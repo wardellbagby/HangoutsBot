@@ -74,3 +74,15 @@ It should be frowned upon to force a user to put underscores in to use a command
   
   
 Have fun botting!
+
+Extra
+-----------
+  
+Special credit to:  
+  
+[tdryer](https://github.com/tdryer/hangups) for the wonderful Hangups API.  
+[xmikos](https://github.com/xmikos/hangupsbot) for a flawless foundation and them some to build off of.  
+[DocJava](https://github.com/DocJava) for support, help, and rubber ducking.
+  
+  
+This is always going to be a work in progress, and has been built with a focus on my personal conversations, hence some of the more esoteric features. Regardless, I try to make it as accessible as possible for any one who does wish to use it. Expect a lot of changes and some weirdness.
