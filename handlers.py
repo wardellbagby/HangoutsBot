@@ -17,11 +17,12 @@ class MessageHandler(object):
     blocked_list = []
 
     def __init__(self, bot, bot_command='/'):
+        from UtilBot import UtilBot
+
         self.bot = bot
         self.bot_command = bot_command
-        from BotCommands import BotCommands
 
-        self.commands = BotCommands()
+        self.util_bot = UtilBot()
         factory = ChatterBotFactory()
         cleverbotter = factory.create(ChatterBotType.CLEVERBOT)
         MessageHandler.cleversession = cleverbotter.create_session()
@@ -89,7 +90,7 @@ class MessageHandler(object):
             from UtilBot import UtilBot
 
             if event.text[0] == '#':
-                self.bot.send_message(event.conv, self.commands.unhashtag(str(event.text)))
+                self.bot.send_message(event.conv, self.util_bot.unhashtag(str(event.text)))
             elif UtilBot.is_haiku(textuppers):
                 segments = [hangups.ChatMessageSegment('Haiku: ', is_bold=True),
                             hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
@@ -111,7 +112,7 @@ class MessageHandler(object):
                 self.bot.send_message(event.conv, "Fuck yeah!")
             elif not muted:
                 if (clever or (
-                        self.commands.nameregex.search(textuppers))) and MessageHandler.cleversession is not None:
+                        self.util_bot.nameregex.search(textuppers))) and MessageHandler.cleversession is not None:
                     self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
 
         """Handle conversation event"""

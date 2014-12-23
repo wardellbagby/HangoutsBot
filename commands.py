@@ -874,9 +874,9 @@ def add(bot, event, *args):
     else:
         if args[0] == "word":
             args = args[1:]
-            from BotCommands import BotCommands
+            from UtilBot import UtilBot
 
-            BotCommands.add_word(''.join(args))
+            UtilBot.add_word(''.join(args))
 
 
 @command.register
