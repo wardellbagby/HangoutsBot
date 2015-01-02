@@ -132,6 +132,14 @@ def define(bot, event, *args):
 
 
 @command.register
+def count(bot, event, *args):
+    words = ' '.join(args)
+    count = UtilBot.syllable_count(words)
+    bot.send_message(event.conv,
+                     '"' + words + '"' + " has " + str(count) + (' syllables.' if count == 1 else ' syllable.'))
+
+
+@command.register
 def udefine(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Urbanly Define', is_bold=True),
