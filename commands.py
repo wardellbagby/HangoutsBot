@@ -136,7 +136,7 @@ def count(bot, event, *args):
     words = ' '.join(args)
     count = UtilBot.syllable_count(words)
     bot.send_message(event.conv,
-                     '"' + words + '"' + " has " + str(count) + (' syllables.' if count == 1 else ' syllable.'))
+                     '"' + words + '"' + " has " + str(count) + (' syllable.' if count == 1 else ' syllables.'))
 
 
 @command.register
