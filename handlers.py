@@ -90,7 +90,11 @@ class MessageHandler(object):
             from UtilBot import UtilBot
 
             if event.text[0] == '#':
-                self.bot.send_message(event.conv, self.util_bot.unhashtag(str(event.text)))
+                unhashtagged = self.util_bot.unhashtag(event.text)
+                segments = [hangups.ChatMessageSegment(x) if x != '\n' else hangups.ChatMessageSegment('\n',
+                                                                                                       segment_type=hangups.SegmentType.LINE_BREAK)
+                            for x in unhashtagged]
+                self.bot.send_message_segments(event.conv, segments)
             elif UtilBot.is_haiku(textuppers):
                 segments = [hangups.ChatMessageSegment('Haiku: ', is_bold=True),
                             hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]

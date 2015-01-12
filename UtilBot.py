@@ -275,14 +275,20 @@ class UtilBot:
     def unhashtag(self, message):
         hashtagged = str(message)
         withspaces = ""
-        if hashtagged[0] == '#':
-            hashtagged = hashtagged[1:]
-        x = len(hashtagged)
-        while x > 0:
-            if self.binary_search(self.list, hashtagged[0:x].lower()) > -1:
-                withspaces += hashtagged[0:x] + " "
-                hashtagged = hashtagged[x:]
-                x = len(hashtagged)
-            else:
-                x -= 1
-        return "Unhashtagged: " + withspaces + ("[" + hashtagged + "]" if len(hashtagged) > 0 else "").title()
+        pattern = re.compile(r'(#\w+\'*\w*)')
+        matches = pattern.findall(hashtagged)
+        to_return = []
+        for match in matches:
+            match = match[1:]
+            x = len(match)
+            while x > 0:
+                if self.binary_search(self.list, match[0:x].lower()) > -1:
+                    to_return.append(match[0:x] + ' ')
+                    match = match[x:]
+                    x = len(match)
+                else:
+                    x -= 1
+            if len(match) > 0:
+                to_return.append('[' + match + ']')
+            to_return.append('\n')
+        return to_return

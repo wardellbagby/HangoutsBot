@@ -43,12 +43,7 @@ To actually get the bot up and running, run the Main.py file. If you have Git in
 most recent version from the repo. If you don't want that functionality, simply delete the os.system("git pull") line from
 Main.py.  
 
-On first load, it will ask you for an Email and Password. Input that and the bot will start.  
-*IMPORTANT FOR WINDOWS USERS* If you attempt to run this bot and it will not let you input a password, you'll need to manually edit the auth.py file in the Hangups package. As of 12/5/2014, you will need to change line 189 to:  
-```python
-password = input('Password: ')
-```  
-This will make your password plain-text when entering it, but it will not save in plain-text.  
+On first load, it will ask you for an Email and Password. Input that and the bot will start.    
 
 Upon connection, test to make sure that the bot is functioning properly by starting a chat with it and using /ping. If it replies with 'pong', you're in business! If not, manually log into the bot's gmail account and see if it didn't auto-accept the Hangouts invitation.  
 
