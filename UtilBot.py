@@ -275,7 +275,7 @@ class UtilBot:
     def unhashtag(self, message):
         hashtagged = str(message)
         withspaces = ""
-        pattern = re.compile(r'(#\w+\'*\w*)')
+        pattern = re.compile(r'(#[a-zA-Z]+\'*[a-zA-Z]*)')
         matches = pattern.findall(hashtagged)
         to_return = []
         for match in matches:
@@ -291,4 +291,4 @@ class UtilBot:
             if len(match) > 0:
                 to_return.append('[' + match + ']')
             to_return.append('\n')
-        return to_return
+        return to_return if to_return != [] else None
