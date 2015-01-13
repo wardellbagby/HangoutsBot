@@ -86,7 +86,7 @@ class MessageHandler(object):
             commands.shutup(self.bot, event)
         event.text = event.text.replace('\xa0', ' ')
         textuppers = str(event.text).upper()
-        if not event.text.startswith('/'):
+        if not event.text.startswith('/') and not muted:
             from UtilBot import UtilBot
 
             if event.text[0] == '#':
@@ -115,10 +115,8 @@ class MessageHandler(object):
                 self.bot.send_message(event.conv, "MURICA!!!!!!!")
             elif "MURICA" in textuppers:
                 self.bot.send_message(event.conv, "Fuck yeah!")
-            elif not muted:
-                if (clever or (
-                        self.util_bot.nameregex.search(textuppers))) and MessageHandler.cleversession is not None:
-                    self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
+            elif (clever or (self.util_bot.nameregex.search(textuppers))) and MessageHandler.cleversession is not None:
+                self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
 
         """Handle conversation event"""
         if logging.root.level == logging.DEBUG:

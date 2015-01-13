@@ -673,7 +673,7 @@ def shutup(bot, event, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /shutup'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Whistle will only reply to his name.')]
+                    hangups.ChatMessageSegment('Purpose: Whistle will only reply to its name.')]
         bot.send_message_segments(event.conv, segments)
     else:
         from handlers import MessageHandler
@@ -724,7 +724,7 @@ def mute(bot, event, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /mute'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Mutes the Cleverbot replies')]
+                    hangups.ChatMessageSegment('Purpose: Mutes all non-command replies.')]
         bot.send_message_segments(event.conv, segments)
     else:
         if bot.conv_settings[event.conv_id] is None:
@@ -741,7 +741,7 @@ def unmute(bot, event, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /unmute'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Unmutes the Cleverbot replies')]
+                    hangups.ChatMessageSegment('Purpose: Unmutes all non-command replies.')]
         bot.send_message_segments(event.conv, segments)
     else:
         if bot.conv_settings[event.conv_id] is None:
@@ -787,7 +787,7 @@ def status(bot, event, *args):
                     hangups.ChatMessageSegment('Replying To All: ' + str(bot.conv_settings[event.conv_id]['clever'])),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Replying To Name: ' + str(not bot.conv_settings[event.conv_id]['muted']))]
+                        'Non-Commands: ' + 'Enabled' if not bot.conv_settings[event.conv_id]['muted'] else 'Disabled')]
         bot.send_message_segments(event.conv, segments)
 
 
