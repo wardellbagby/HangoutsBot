@@ -13,6 +13,7 @@ import urllib
 from bs4 import BeautifulSoup
 import hangups
 from hangups.ui.utils import get_conv_name
+import re
 import requests
 from setuptools.compat import execfile
 
@@ -572,16 +573,25 @@ def record(bot, event, *args):
             bot.send_message_segments(event.conv, segments)
         elif args[0] == "search":
             args = args[1:]
-            term = ' '.join(args)
+            searched_term = ' '.join(args)
+            escaped_args = []
+            for item in args:
+                escaped_args.append(re.escape(item))
+            term = '.*'.join(escaped_args)
+            term = term.replace(' ', '.*')
+            if len(args) > 1:
+                term = '.*' + term
+            else:
+                term = '.*' + term + '.*'
             foundin = []
             for name in glob.glob(directory + "\\" + '*.txt'):
                 with open(name) as f:
                     contents = f.read()
-                if term.lower() in contents.lower():
+                if re.match(term, contents, re.IGNORECASE | re.DOTALL):
                     foundin.append(name.replace(directory, "").replace(".txt", "").replace("\\", ""))
             if len(foundin) > 0:
                 segments = [hangups.ChatMessageSegment("Found "),
-                            hangups.ChatMessageSegment(term, is_bold=True),
+                            hangups.ChatMessageSegment(searched_term, is_bold=True),
                             hangups.ChatMessageSegment(" in:"),
                             hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK)]
                 for file in foundin:
@@ -589,7 +599,10 @@ def record(bot, event, *args):
                     segments.append(hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK))
                 bot.send_message_segments(event.conv, segments)
             else:
-                bot.send_message(event.conv, "Couldn't find \"" + term + "\" in any records.")
+                segments = [hangups.ChatMessageSegment("Couldn't find  "),
+                            hangups.ChatMessageSegment(searched_term, is_bold=True),
+                            hangups.ChatMessageSegment(" in any records."),]
+                bot.send_message_segments(event.conv, segments)
         elif args[0] == "date":
             from dateutil import parser
 
