@@ -170,19 +170,22 @@ class HangupsBot(object):
             admins_list = self.get_config_suboption(event.conv_id, 'admins')
             if event.user_id.chat_id in admins_list:
                 self.send_message(event.conv,
-                                  '{}: Hello and welcome!'.format(names))
+                                  '{}: Ahoj, {} mezi nás!'.format(names,
+                                                                  'vítejte' if len(event_users) > 1 else 'vítej'))
             else:
-                segments = [hangups.ChatMessageSegment('!!! CAUTION !!!', is_bold=True),
+                segments = [hangups.ChatMessageSegment('!!! POZOR !!!', is_bold=True),
                             hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                            hangups.ChatMessageSegment('{} has illegally added {} to this hangout!'.format(
+                            hangups.ChatMessageSegment('{} neoprávněně přidal do tohoto Hangoutu uživatele {}!'.format(
                                 event.user.full_name, names)),
                             hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                             hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                            hangups.ChatMessageSegment('{}: Please leave this Hangout immediately!'.format(names))]
+                            hangups.ChatMessageSegment('{}: Opusťte prosím urychleně tento Hangout!'.format(names))]
                 self.send_message_segments(event.conv, segments)
         # LEAVE
         else:
-            self.send_message(event.conv, 'Goodbye, {}.'.format(names))
+            self.send_message(event.conv,
+                              '{} nám {} košem :-( Řekněte pá pá!'.format(names,
+                                                                          'dali' if len(event_users) > 1 else 'dal'))
 
     def handle_rename(self, conv_event):
         """Handle conversation rename"""
