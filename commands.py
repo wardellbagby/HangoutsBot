@@ -234,7 +234,7 @@ def wiki(bot, event, *args):
                     args = args[:-1]
                 page = wikipedia.page(' '.join(args))
             except DisambiguationError as e:
-                page = wikipedia.page(wikipedia.search(' '.join(args), results=1)[0])
+                page = wikipedia.page(wikipedia.search(e.options[0], results=1)[0])
             segments = [
                 hangups.ChatMessageSegment(page.title, hangups.SegmentType.LINK, is_bold=True, link_target=page.url),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -247,16 +247,6 @@ def wiki(bot, event, *args):
 
 @command.register
 def goog(bot, event, *args):
-    def get_json_results(page):
-        search_results = page.read()
-        results = json.loads(search_results.decode('utf-8'))
-        segments = [hangups.ChatMessageSegment('{}:'.format("Result"), is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment("".join(str(results['responseData']['results'][0]['titleNoFormatting'])),
-                                               hangups.SegmentType.LINK,
-                                               link_target="".join(str(results['responseData']['results'][0]['url'])))]
-        bot.send_message_segments(event.conv, segments)
-
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Google', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -266,19 +256,26 @@ def goog(bot, event, *args):
                         'Purpose: Get the first result from Google\'s search using search parameter.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        rest = " ".join(args)
-        if rest == "" or rest == " ":
-            rest = "google"
-        query = parse.urlencode({'q': rest})
-        url = 'http://ajax.googleapis.com/ajax/services/search/web?v=1.0&%s' \
+        search_terms = " ".join(args)
+        if search_terms == "" or search_terms == " ":
+            search_terms = "google"
+        query = parse.urlencode({'q': search_terms})
+        url = 'https://www.google.com/search?%s&btnI=1' \
               % query
         headers = {
             'User-agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'}
         req = request.Request(url, None, headers)
-        search_response_d = request.urlopen(req)
+        resp = request.urlopen(req)
+        if (url == resp.url):
+            bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Unable to find a result for \"'),
+                                                   hangups.ChatMessageSegment(search_terms, is_bold=True)])
+            return
+        soup = BeautifulSoup(resp)
 
-        get_json_results(search_response_d)
-        return search_response_d
+        bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Result:', is_bold=True),
+                                               hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                                               hangups.ChatMessageSegment(soup.title.string, hangups.SegmentType.LINK,
+                                                                          link_target=url)])
 
 
 @command.register
@@ -594,14 +591,14 @@ def record(bot, event, *args):
                             hangups.ChatMessageSegment(searched_term, is_bold=True),
                             hangups.ChatMessageSegment(" in:"),
                             hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK)]
-                for file in foundin:
-                    segments.append(hangups.ChatMessageSegment(file))
+                for filename in foundin:
+                    segments.append(hangups.ChatMessageSegment(filename))
                     segments.append(hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK))
                 bot.send_message_segments(event.conv, segments)
             else:
                 segments = [hangups.ChatMessageSegment("Couldn't find  "),
                             hangups.ChatMessageSegment(searched_term, is_bold=True),
-                            hangups.ChatMessageSegment(" in any records."),]
+                            hangups.ChatMessageSegment(" in any records.")]
                 bot.send_message_segments(event.conv, segments)
         elif args[0] == "date":
             from dateutil import parser
