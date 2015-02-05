@@ -294,7 +294,7 @@ def ping(bot, event, *args):
 
 
 @command.register
-def remind(bot, event, date, time, *args):
+def remind(bot, event, *args):
     # TODO Implement a private chat feature. Have reminders save across reboots?
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Remind', is_bold=True),
@@ -311,15 +311,28 @@ def remind(bot, event, date, time, *args):
             bot.send_message(conv, reminder)
 
         args = list(args)
-        if time is not None and not time[0].isnumeric():
-            args.insert(0, time)
-            time = str((datetime.now() + timedelta(hours=1)).time())
-        if not date[0].isnumeric():
-            args.insert(0, date)
-            date = str(datetime.now().today().date())
+        date = str(datetime.now().today().date())
+        time = str((datetime.now() + timedelta(hours=1)).time())
+        set_date = False
+        set_time = False
+        index = 0
+        while index < len(args):
+            item = args[index]
+            if item[0].isnumeric():
+                if '/' in item or '-' in item:
+                    date = item
+                    args.remove(date)
+                    set_date = True
+                    index-=1
+                else:
+                    time = item
+                    args.remove(time)
+                    set_time = True
+                    index-=1
+            if set_date and set_time:
+                break
+            index += 1
 
-        if '/' in time or '-' in time:
-            date, time = time, date
         date_time = date + ' ' + time
         reminder = ' '.join(args)
         try:
