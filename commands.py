@@ -1,16 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from fractions import Fraction
 import glob
 import os
 import json
 import random
 import asyncio
+import threading
 import traceback
 from urllib import parse
 from urllib import request
 import urllib
 
 from bs4 import BeautifulSoup
+from dateutil import parser
 import hangups
 from hangups.ui.utils import get_conv_name
 import re
@@ -289,6 +291,45 @@ def ping(bot, event, *args):
         bot.send_message_segments(event.conv, segments)
     else:
         bot.send_message(event.conv, 'pong')
+
+
+@command.register
+def remind(bot, event, date, time, *args):
+    # TODO Implement a private chat feature. Have reminders save across reboots?
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Remind', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /remind <optional: date [defaults to today]> <optional: time [defaults to an hour from now]> Message'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Purpose: Will post a message the date and time specified to the current chat.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        def send_reminder(bot, conv, reminder, loop):
+            asyncio.set_event_loop(loop)
+            bot.send_message(conv, reminder)
+
+        args = list(args)
+        if time is not None and not time[0].isnumeric():
+            args.insert(0, time)
+            time = str((datetime.now() + timedelta(hours=1)).time())
+        if not date[0].isnumeric():
+            args.insert(0, date)
+            date = str(datetime.now().today().date())
+
+        if '/' in time or '-' in time:
+            date, time = time, date
+        date_time = date + ' ' + time
+        reminder = ' '.join(args)
+        try:
+            date_time = parser.parse(date_time)
+        except Exception as e:
+            bot.send_message(event.conv, "Couldn't parse " + date_time + " as a valid date.")
+            return
+        current_time = datetime.now()
+        threading.Timer((date_time - current_time).seconds, send_reminder,
+                        [bot, event.conv, reminder, asyncio.get_event_loop()]).start()
 
 
 @command.register
