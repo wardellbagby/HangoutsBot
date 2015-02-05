@@ -296,6 +296,7 @@ def ping(bot, event, *args):
 @command.register
 def remind(bot, event, *args):
     # TODO Implement a private chat feature. Have reminders save across reboots?
+    # TODO Add a way to remove reminders.
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Remind', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -323,12 +324,12 @@ def remind(bot, event, *args):
                     date = item
                     args.remove(date)
                     set_date = True
-                    index-=1
+                    index -= 1
                 else:
                     time = item
                     args.remove(time)
                     set_time = True
-                    index-=1
+                    index -= 1
             if set_date and set_time:
                 break
             index += 1
@@ -343,6 +344,7 @@ def remind(bot, event, *args):
         current_time = datetime.now()
         threading.Timer((date_time - current_time).seconds, send_reminder,
                         [bot, event.conv, reminder, asyncio.get_event_loop()]).start()
+        bot.send_message(event.conv, "Reminder set for " + date_time.strftime('%B %d, %Y %I:%M%p'))
 
 
 @command.register
