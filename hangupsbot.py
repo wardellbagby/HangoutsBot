@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-from datetime import datetime
+from datetime import date, datetime
 import sys
 import asyncio
 import time
@@ -191,19 +191,22 @@ class HangupsBot(object):
         """Handle conversation rename"""
         event = ConversationEvent(self, conv_event)
 
-        # Don't handle events caused by the bot himself
-        if event.user.is_self:
-            return
-
         # Test if watching for conversation rename is enabled
         if not self.get_config_suboption(event.conv_id, 'rename_watching_enabled'):
             return
 
-        # Only print renames for now...
         if event.conv_event.new_name == '':
-            print('{} cleared the conversation name'.format(event.user.first_name))
+            text = "Name cleared"
+            directory = "Records" + "\\" + str(event.conv_id)
+            filename = str(date.today()) + ".txt"
+            file = open(directory + '\\' + filename, "a+")
+            file.write(text + '\n')
         else:
-            print('{} renamed the conversation to {}'.format(event.user.first_name, event.conv_event.new_name))
+            text = "Name changed to: "+conv_event.new_name
+            directory = "Records" + "\\" + str(event.conv_id)
+            filename = str(date.today()) + ".txt"
+            file = open(directory + '\\' + filename, "a+")
+            file.write(text + '\n')
 
     def send_message(self, conversation, text):
         """"Send simple chat message"""

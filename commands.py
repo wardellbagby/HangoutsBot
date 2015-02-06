@@ -387,7 +387,7 @@ def remind(bot, event, *args):
         current_time = datetime.now()
         try:
             reminder_time = parser.parse(reminder_time)
-        except TypeError as e:
+        except (ValueError, TypeError):
             bot.send_message(event.conv, "Couldn't parse " + reminder_time + " as a valid date.")
             return
         if reminder_time < current_time:
