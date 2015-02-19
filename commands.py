@@ -20,15 +20,17 @@ import requests
 
 import Genius
 from UtilBot import UtilBot
+from cleverbot import ChatterBotFactory, ChatterBotType, _CleverbotSession
 from utils import text_to_segments
-
 
 class CommandDispatcher(object):
     last_recorder = None
     last_recorded = None
 
+
     def __init__(self):
         self.commands = {}
+        self.hidden_commands = {}
         self.unknown_command = None
 
     @asyncio.coroutine
@@ -40,10 +42,13 @@ class CommandDispatcher(object):
         try:
             func = self.commands[command]
         except KeyError:
-            if self.unknown_command:
-                func = self.unknown_command
-            else:
-                raise
+            try:
+                func = self.hidden_commands[command]
+            except KeyError:
+                if self.unknown_command:
+                    func = self.unknown_command
+                else:
+                    raise
 
         func = asyncio.coroutine(func)
 
@@ -62,12 +67,17 @@ class CommandDispatcher(object):
         self.commands[func.__name__] = func
         return func
 
+    def register_hidden(self, func):
+        self.hidden_commands[func.__name__] = func
+        return func
+
     def register_unknown(self, func):
         self.unknown_command = func
         return func
 
 # CommandDispatcher singleton
 command = CommandDispatcher()
+clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_session()
 reminders = []
 
 
@@ -77,8 +87,14 @@ def unknown_command(bot, event, *args):
                      '{}: Unknown command!'.format(event.user.full_name))
 
 
-# Whatever new methods added here will be automatically added to the Bot's command list if they have this
+# Whatever new methods added here will be automatically added to the Bot's command list if they have the
 # @command.register annotation.
+
+@command.register_hidden
+def think(bot, event, *args):
+    if clever_session:
+        bot.send_message(event.conv, clever_session.think(' '.join(args)))
+
 
 @command.register
 def help(bot, event, *args):
@@ -339,7 +355,6 @@ def ping(bot, event, *args):
 @command.register
 def remind(bot, event, *args):
     # TODO Implement a private chat feature. Have reminders save across reboots?
-    # TODO Add a way to remove reminders.
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Remind', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -813,48 +828,8 @@ def clear(bot, event, *args):
 
 
 @command.register
-def speakup(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Speakup', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /speakup'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Whistle will reply to everything.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        from handlers import MessageHandler
-
-        MessageHandler.speakup(bot, event)
-
-
-@command.register
-def shutup(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Shut-up', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /shutup'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Whistle will only reply to its name.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        from handlers import MessageHandler
-
-        MessageHandler.shutup(bot, event)
-
-
-@command.register
 def trash(bot, event, *args):
     bot.send_message(event.conv, "🚮")
-
-def get_settings_index():
-    import sys
-
-    index = -1
-    for x in range(0, len(sys.argv)):
-        if isinstance(sys.argv[x], dict):
-            if sys.argv[x]["isSettings"]:
-                index = x
-    return index
 
 
 @command.register
@@ -867,11 +842,12 @@ def mute(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Mutes all non-command replies.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        if bot.conv_settings[event.conv_id] is None:
-            bot.conv_settings[event.conv_id] = {}
-        settings = dict(bot.conv_settings[event.conv_id])
-        settings['muted'] = True
-        bot.conv_settings[event.conv_id] = settings
+        try:
+            bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = False
+        except KeyError:
+            bot.config['conversation'][event.conv_id] = {}
+            bot.config['conversation'][event.conv_id]['autoreplies_enabled'] = False
+        bot.config.save()
 
 
 @command.register
@@ -884,11 +860,12 @@ def unmute(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Unmutes all non-command replies.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        if bot.conv_settings[event.conv_id] is None:
-            bot.conv_settings[event.conv_id] = {}
-        settings = dict(bot.conv_settings[event.conv_id])
-        settings['muted'] = False
-        bot.conv_settings[event.conv_id] = settings
+        try:
+            bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+        except KeyError:
+            bot.config['conversations'][event.conv_id] = {}
+            bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+        bot.config.save()
 
 
 @command.register
@@ -918,16 +895,15 @@ def status(bot, event, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /status'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Shows current status.')]
+                    hangups.ChatMessageSegment('Purpose: Shows current relevant Bot settings.')]
         bot.send_message_segments(event.conv, segments)
     else:
 
         segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Replying To All: ' + str(bot.conv_settings[event.conv_id]['clever'])),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Non-Commands: ' + 'Enabled' if not bot.conv_settings[event.conv_id]['muted'] else 'Disabled')]
+                        'Autoreplies: ' + ('Enabled' if bot.config['conversations'][event.conv_id][
+                            'autoreplies_enabled'] else 'Disabled'))]
         bot.send_message_segments(event.conv, segments)
 
 

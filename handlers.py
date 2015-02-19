@@ -1,4 +1,5 @@
-import logging, shlex, unicodedata, asyncio
+import logging, shlex, asyncio
+import re
 from cleverbot import ChatterBotFactory, ChatterBotType
 import hangups
 
@@ -21,11 +22,7 @@ class MessageHandler(object):
 
         self.bot = bot
         self.bot_command = bot_command
-
         self.util_bot = UtilBot()
-        factory = ChatterBotFactory()
-        cleverbotter = factory.create(ChatterBotType.CLEVERBOT)
-        MessageHandler.cleversession = cleverbotter.create_session()
         MessageHandler.blocked_list = []
 
     @staticmethod
@@ -53,15 +50,11 @@ class MessageHandler(object):
     @staticmethod
     def word_in_text(word, text):
         """Return True if word is in text"""
-        # Transliterate unicode characters to ASCII and make everything lowercase
-        word = unicodedata.normalize('NFKD', word).encode('ascii', 'ignore').decode().lower()
-        text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode().lower()
+        escaped = word.encode('unicode-escape').decode()
+        if word != escaped:
+            return word in text
 
-        # Replace delimiters in text with whitespace
-        for delim in '.,:;!?':
-            text = text.replace(delim, ' ')
-
-        return True if word in text.split() else False
+        return True if re.search('\\b' + word + '\\b', text, re.IGNORECASE) else False
 
     @asyncio.coroutine
     def handle(self, event):
@@ -71,69 +64,31 @@ class MessageHandler(object):
         if event.conv_id not in self.bot.conv_settings:
             self.bot.conv_settings[event.conv_id] = {}
         try:
-            muted = self.bot.conv_settings[event.conv_id]['muted']
+            muted = not self.bot.config['conversations'][event.conv_id]['autoreplies_enabled']
         except KeyError:
             muted = False
             import commands
 
             commands.unmute(self.bot, event)
-        try:
-            clever = self.bot.conv_settings[event.conv_id]['clever']
-        except KeyError:
-            clever = False
-            import commands
 
-            commands.shutup(self.bot, event)
         event.text = event.text.replace('\xa0', ' ')
-        textuppers = str(event.text).upper()
-        if not event.text.startswith('/') and not muted:
-            from UtilBot import UtilBot
-
-            if event.text[0] == '#':
-                unhashtagged = self.util_bot.unhashtag(event.text)
-                if unhashtagged != None:
-                    segments = [hangups.ChatMessageSegment(x) if x != '\n' else hangups.ChatMessageSegment('\n',
-                                                                                                           segment_type=hangups.SegmentType.LINE_BREAK)
-                                for x in unhashtagged]
-                    self.bot.send_message_segments(event.conv, segments)
-            elif UtilBot.is_haiku(textuppers):
-                segments = [hangups.ChatMessageSegment('Haiku: ', is_bold=True),
-                            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-                lines = UtilBot.convert_to_haiku(event.text)
-                if lines is not None:
-                    lines = lines.split('\n')
-                    for line in lines:
-                        segments.append(hangups.ChatMessageSegment(line))
-                        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-                    segments.pop()
-                    self.bot.send_message_segments(event.conv, segments)
-            elif "🚮" in str(event.text):
-                self.bot.send_message(event.conv, "🚮")
-            elif textuppers.endswith('?!'):
-                self.bot.send_message(event.conv, "I agree with " + str(event.user.full_name) + '.')
-            elif "AMERICA" in textuppers:
-                self.bot.send_message(event.conv, "MURICA!!!!!!!")
-            elif "MURICA" in textuppers:
-                self.bot.send_message(event.conv, "Fuck yeah!")
-            elif (clever or (self.util_bot.nameregex.search(textuppers))) and MessageHandler.cleversession is not None:
-                self.bot.send_message(event.conv, MessageHandler.cleversession.think(str(event.text[5:])))
 
         """Handle conversation event"""
         if logging.root.level == logging.DEBUG:
             event.print_debug()
 
         if not event.user.is_self and event.text:
-            if event.text.startswith('/'):
+            if event.text.startswith(self.bot_command):
                 # Run command
                 if event.text[1] == '?':
                     event.text = "/help"
                 yield from self.handle_command(event)
             else:
-                # Forward messages
-                yield from self.handle_forward(event)
-
-                # Send automatic replies
-                yield from self.handle_autoreply(event)
+                    # Forward messages
+                    yield from self.handle_forward(event)
+                    if not muted:
+                        # Send automatic replies
+                        yield from self.handle_autoreply(event)
 
     @asyncio.coroutine
     def handle_command(self, event):
@@ -213,5 +168,9 @@ class MessageHandler(object):
             for kwds, sentence in autoreplies_list:
                 for kw in kwds:
                     if self.word_in_text(kw, event.text) or kw == "*":
-                        self.bot.send_message(event.conv, sentence)
+                        if sentence[0] == self.bot_command:
+                            event.text = sentence.format(event.text)
+                            yield from self.handle_command(event)
+                        else:
+                            self.bot.send_message(event.conv, sentence)
                         break

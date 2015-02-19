@@ -13,7 +13,7 @@ class Config(collections.MutableMapping):
     def load(self):
         """Load config from file"""
         try:
-            self.config = json.load(open(self.filename))
+            self.config = json.loads(open(self.filename, encoding='utf-8').read(), encoding='utf-8')
         except IOError:
             self.config = {}
         self.changed = False
