@@ -7,7 +7,7 @@ import hangups
 
 __author__ = 'wardellchandler'
 
-words = open("Core" + os.sep + "Util" + os.sep + "Wordlist.txt")
+words = open("Core" + os.sep + "Util" + os.sep + "wordlist.txt")
 word_list = []
 for line in words:
     word_list.append(line.strip('\n'))
@@ -267,7 +267,7 @@ def add_word(word):
         return
     word_list.insert(~pos, word)
     global words
-    words = open('Wordlist.txt', 'w+')
+    words = open('wordlist.txt', 'w+')
     words.seek(0)
     for word in word_list:
         words.write(word + '\n')

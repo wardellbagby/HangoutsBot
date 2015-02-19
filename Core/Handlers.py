@@ -9,7 +9,7 @@ import hangups
 from Core.Commands import DefaultCommands
 
 from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
-from Core.Commands.DefaultCommands import command
+from Core.Commands.DefaultCommands import DispatcherSingleton
 
 
 class MessageHandler(object):
@@ -124,7 +124,7 @@ class MessageHandler(object):
                 return
 
         # Run command
-        yield from command.run(self.bot, event, *line_args[0:])
+        yield from DispatcherSingleton.run(self.bot, event, *line_args[0:])
 
     @asyncio.coroutine
     def handle_forward(self, event):
