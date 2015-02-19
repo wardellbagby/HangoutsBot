@@ -8,32 +8,46 @@ In order to use this, you'll need to setup a GMail account for logging in, and a
 
 ```JSON
 {
-  "admins": ["USER_ID", "USER_ID", "USER_ID", "USER_ID", "USER_ID"],  
-  "autoreplies": [  
-    [["hi", "hello"], "Hello world!"]  
+  "admins": ["YOUR-USER-ID-HERE"],
+  "autoreplies_enabled": true,
+  "autoreplies": [
+    [["bot", "robot", "Yo"], "/think {}"]
   ],
-  "autoreplies_enabled": false,  
-  "development_mode": false,  
-  "commands_admin": ["restart", "user", "users", "hangouts", "reload", "quit", "config"],  
-  "commands_enabled": true,  
-  "forwarding_enabled": false,  
-  "conversations": {  
-    "CONV1_ID": {  
+  "development_mode": false,
+  "commands_admin": ["hangouts", "reload", "quit", "restart", "config", "restart", "block"],
+  "commands_enabled": true,
+  "forwarding_enabled": false,
+  "rename_watching_enabled": true,
+  "conversations": {
+    "CONV-ID-HERE": {
+      "autoreplies": [
+        [["whistle", "bot", "whistlebot"], "/think {}"],
+        [["trash"], "You're trash"]
+      ],
       "forward_to": [  
-        "CONV2_ID"  
-      ]  
-    },  
-    "CONV2_ID": {  
-      "autoreplies_enabled": false,  
-      "commands_enabled": false,  
-      "forwarding_enabled": false,  
-      "forward_to": [  
-        "CONV1_ID"  
-      ]  
-    }  
-  }  
-}  
+        "CONV1_ID" 
+      ]
+    }
+  }
+}
 ```
+
+Line by Line breakdown (excluding braces/brackets):
+1. Sets the admins. Only admins can use the admin commands listed in commands_admin.
+2. Sets autoreplies to be enabled for every conversation the bot is in.
+3. Sets the autoreplies for all conversations the bot is in.
+4. Sets "Dev Mode" to default to off for all conversations. Dev Mode will force the bot to print out all of it's replies to the console window instead of replying via Hangouts.
+5. Array of all of the commands that only admins will have access to use.
+6. Sets commands to be enabled for all chats.
+7. Sets chat forwarding for all chats to disabled. (When enabled, you must have a conversation object with a "forward_to" member that is set to a different conversation id.)
+8. Sets rename watching to enabled. (This is required to have /record record name changes.)
+9. Start of the conversations dictionary.
+10. Start of a conversation specific dictionary. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx".
+11. Sets the autoreplies for this specific conversation, which entirely overrides any autoreplies set for all conversations.
+12. Sets an autoreply keyword and reply. In this case, "whistle", "bot", and "whistlebot" are all keywords, and the reply will be the command /think, which will be given the entirety of what the user posted. For example: A user saying "Bot, how are you?" would cause the command "/think Bot, how are you?" to be ran. NOTE: The keywords are case-insensitive.
+13. Sets another autoreply keyword and reply. In this case, if a user says "trash," the Bot will reply with "You're trash." NOTE: The keywords are case-insensitive.
+14. Start of the "forward_to" array. All conversation IDs listed here will have this conversation forwarded to them.
+15. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx", and then commands will be forwarded to that conversation.
 
 A cookies.txt file will also be created, holding the cookies that are valid for your login.  
   
@@ -49,10 +63,10 @@ Upon connection, test to make sure that the bot is functioning properly by start
 
 Adding Functionality
 -------
-Any function created in the commands.py file and decorated with the command.register annotation will be automatically picked up by the bot upon next restart. Commands are very simple and should be in the style of:  
+Any function created in the ExtraCommands.py file (or any .py that imports the DispatcherSingleton) and decorated with the @DispatcherSingle.register annotation will be automatically picked up by the bot upon next restart. Commands are very simple and should be in the style of:  
 
 ```python  
-@command.register
+@DispatcherSingleton.register
 def function_for_bot(bot, event, *args):
      if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('New Function For Bot', is_bold=True),
