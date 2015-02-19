@@ -1,7 +1,7 @@
 import collections, functools, json
 
 
-class Config(collections.MutableMapping):
+class ConfigDict(collections.MutableMapping):
     """Configuration JSON storage class"""
     def __init__(self, filename, default=None):
         self.filename = filename

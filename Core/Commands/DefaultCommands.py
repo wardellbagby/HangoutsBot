@@ -10,18 +10,18 @@ import traceback
 from urllib import parse
 from urllib import request
 import urllib
+import re
 
 from bs4 import BeautifulSoup
 from dateutil import parser
 import hangups
 from hangups.ui.utils import get_conv_name
-import re
 import requests
+from cleverbot import ChatterBotFactory, ChatterBotType
 
-import Genius
-from UtilBot import UtilBot
-from cleverbot import ChatterBotFactory, ChatterBotType, _CleverbotSession
-from utils import text_to_segments
+from Libraries import Genius
+from Core.Util import UtilBot
+
 
 class CommandDispatcher(object):
     last_recorder = None
@@ -808,22 +808,22 @@ def clear(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Clears the current screen.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        segments = [hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK)]
+        segments = [hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK)]
         bot.send_message_segments(event.conv, segments)
 
 
@@ -952,7 +952,7 @@ def config(bot, event, cmd=None, *args):
     segments = [hangups.ChatMessageSegment('{}:'.format(config_path),
                                            is_bold=True),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-    segments.extend(text_to_segments(json.dumps(value, indent=2, sort_keys=True)))
+    segments.extend(UtilBot.text_to_segments(json.dumps(value, indent=2, sort_keys=True)))
     bot.send_message_segments(event.conv, segments)
 
 
@@ -984,23 +984,6 @@ def flip(bot, event, *args):
                                  "Heads!" if heads > tails else "Tails!" if tails > heads else "Tie!") + " Heads: " + str(
                                  heads) + " Tails: " + str(tails) + " Ratio: " + (str(
                                  Fraction(heads, tails)) if heads > 0 and tails > 0 else str(heads) + '/' + str(tails)))
-
-
-@command.register
-def add(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Add', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /add word <word to add>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Adds a word to the Unhashtagger.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        if args[0] == "word":
-            args = args[1:]
-            from UtilBot import UtilBot
-
-            UtilBot.add_word(''.join(args))
 
 
 @command.register
@@ -1051,7 +1034,7 @@ def block(bot, event, username, *args):
     for u in sorted(bot._user_list._user_dict.values(), key=lambda x: x.full_name.split()[-1]):
         if not username_lower in u.full_name.lower():
             continue
-        from handlers import MessageHandler
+        from Core.Handlers import MessageHandler
 
         MessageHandler.blocked_list.append(u.id_)
         bot.send_message(event.conv, "Blocked User: {}".format(u.full_name))

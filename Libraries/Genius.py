@@ -1,5 +1,3 @@
-__author__ = 'cbagby'
-
 from bs4 import BeautifulSoup
 from urllib import request as urllib2
 from urllib import parse as urllib
