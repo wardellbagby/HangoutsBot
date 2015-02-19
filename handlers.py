@@ -166,7 +166,7 @@ class MessageHandler(object):
             if event.user_id.chat_id not in admins_list:
                 if not self.bot.dev:
                     self.bot.send_message(event.conv,
-                                          '{}: I\'m sorry, Dave. I\'m afraid I can\'t do that.'.format(
+                                          'I\'m sorry, {}. I\'m afraid I can\'t do that.'.format(
                                               event.user.full_name))
                 return
 

@@ -17,7 +17,6 @@ import hangups
 from hangups.ui.utils import get_conv_name
 import re
 import requests
-from setuptools.compat import execfile
 
 import Genius
 from UtilBot import UtilBot
@@ -79,8 +78,7 @@ def unknown_command(bot, event, *args):
 
 
 # Whatever new methods added here will be automatically added to the Bot's command list if they have this
-# @command.register annotation. Add them in the config.json file to have them show in the /help command.
-# Also, it'd be nice if all methods accepted a '?' argument to denote their function.
+# @command.register annotation.
 
 @command.register
 def help(bot, event, *args):
@@ -116,23 +114,74 @@ def define(bot, event, *args):
         segments = [hangups.ChatMessageSegment('Define', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
-                        'Usage: /define <word to search for> <optional: definition number [defaults to 1st]>'),
+                        'Usage: /define <word to search for> <optional: definition number [defaults to 1] OR * to show all definitions>'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Define a word.')]
+                    hangups.ChatMessageSegment(
+                        'Usage: /define <word to search for> <start index and end index in form of int:int (e.g., /define test 1:3)>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Show definitions for a word.')]
         bot.send_message_segments(event.conv, segments)
     else:
         if args[-1].isdigit():
+            definition, length = UtilBot.define(' '.join(args[0:-1]), num=int(args[-1]))
             segments = [hangups.ChatMessageSegment(' '.join(args[0:-1]).title(), is_bold=True),
                         hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                         hangups.ChatMessageSegment(
-                            UtilBot.define(' '.join(args[0:-1]), num=int(args[-1])).replace('\n', ''))]
+                            definition.replace('\n', ''))]
             bot.send_message_segments(event.conv, segments)
+        elif args[-1] == '*':
+            args = list(args)
+            args[-1] = '1:*'
+        if ':' in args[-1]:
+            start, end = re.split(':', args[-1])
+            try:
+                start = int(start)
+            except ValueError:
+                start = 1
+            display_all = False
+            if end == '*':
+                end = 100
+                display_all = True
+            else:
+                try:
+                    end = int(end)
+                except ValueError:
+                    end = 3
+            if start < 1:
+                start = 1
+            if start > end:
+                end, start = start, end
+            if start == end:
+                end += 1
+            if len(args) <= 1:
+                bot.send_message(event.conv, "Invalid usage for /define.")
+                return
+            query = ' '.join(args[:-1])
+            definition_segments = [hangups.ChatMessageSegment(query.title(), is_bold=True),
+                                   hangups.ChatMessageSegment('', segment_type=hangups.SegmentType.LINE_BREAK)]
+            if start < end:
+                x = start
+                while x <= end:
+                    definition, length = UtilBot.define(query, num=x)
+                    definition_segments.append(hangups.ChatMessageSegment(definition))
+                    if x != end:
+                        definition_segments.append(
+                            hangups.ChatMessageSegment('', segment_type=hangups.SegmentType.LINE_BREAK))
+                        definition_segments.append(
+                            hangups.ChatMessageSegment('', segment_type=hangups.SegmentType.LINE_BREAK))
+                    if end > length:
+                        end = length
+                    if display_all:
+                        end = length
+                        display_all = False
+                    x += 1
+                bot.send_message_segments(event.conv, definition_segments)
+            return
         else:
-            segments = [hangups.ChatMessageSegment(' '.join(args).title(), is_bold=True),
-                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                        hangups.ChatMessageSegment(
-                            UtilBot.define(' '.join(args)).replace('\n', ''))]
-            bot.send_message_segments(event.conv, segments)
+            args = list(args)
+            args.append("1:3")
+            define(bot, event, *args)
+            return
 
 
 @command.register
@@ -158,7 +207,8 @@ def udefine(bot, event, *args):
         num_requested = 0
         returnall = False
         if len(args) == 0:
-            return u'You need to give me a term to look up.'
+            bot.send_message(event.conv, "Invalid usage of /udefine.")
+            return
         else:
             if args[-1] == '*':
                 args = args[:-1]
@@ -172,10 +222,6 @@ def udefine(bot, event, *args):
             response = requests.get(api_host + term)
             error_response = 'No definition found for \"{}\".'.format(' '.join(args))
             if response.status_code != 200:
-                bot.send_message(event.conv, error_response)
-            result = response.content.decode()
-            response_list = json.loads(result)
-            if not response_list:
                 bot.send_message(event.conv, error_response)
             result = response.content.decode()
             result_list = json.loads(result)
@@ -269,10 +315,6 @@ def goog(bot, event, *args):
             'User-agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'}
         req = request.Request(url, None, headers)
         resp = request.urlopen(req)
-        if (url == resp.url):
-            bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Unable to find a result for \"'),
-                                                   hangups.ChatMessageSegment(search_terms, is_bold=True)])
-            return
         soup = BeautifulSoup(resp)
 
         bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Result:', is_bold=True),
@@ -751,22 +793,22 @@ def clear(bot, event, *args):
                     hangups.ChatMessageSegment('Purpose: Clears the current screen.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        segments = [hangups.ChatMessageSegment('Initialing', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Screen', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Removal', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Protocol', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('135:', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Just', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Going', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('To', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Remove', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('That', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('From', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('The', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Current', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('View', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('<!END PROTOCOL>', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('So how was your day?', hangups.SegmentType.LINE_BREAK)]
+        segments = [hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('', hangups.SegmentType.LINE_BREAK)]
         bot.send_message_segments(event.conv, segments)
 
 
@@ -803,27 +845,6 @@ def shutup(bot, event, *args):
 @command.register
 def trash(bot, event, *args):
     bot.send_message(event.conv, "🚮")
-
-
-@command.register
-def restart(bot, event, *args):
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Restart', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /restart'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Restarts the bot and attempts to update.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        import sys
-
-        index = get_settings_index()
-        if index != -1:
-            sys.argv[index]["bot"] = bot
-            sys.argv[index]["event"] = event
-        quit(bot, event, args)
-        execfile('Main.py')
-
 
 def get_settings_index():
     import sys

@@ -36,12 +36,16 @@ class UtilBot:
         except Exception as e:
             print(e)
             return 'Couldn\'t download definition.'
-        soup = BeautifulSoup(request.urlopen(url))
+        try:
+            soup = BeautifulSoup(request.urlopen(url))
+        except:
+            return "Network Error: Couldn't download definition.", 0
         if soup.ul is not None:
             definitions = [x.text for x in list(soup.ul) if isinstance(x, Tag) and x.text != '\n' and x.text != '']
             if len(definitions) >= num:
-                return (definitions[num - 1] + '[' + str(num) + ' of ' + str(len(definitions)) + ']')[3:].capitalize()
-        return "Couldn\'t download definition."
+                return (definitions[num - 1] + '[' + str(num) + ' of ' + str(len(definitions)) + ']')[
+                       3:].capitalize(), len(definitions)
+        return "Couldn\'t find definition.", 0
 
     @staticmethod
     def levenshtein_distance(first, second):
