@@ -32,22 +32,23 @@ In order to use this, you'll need to setup a GMail account for logging in, and a
 }
 ```
 
-Line by Line breakdown (excluding braces/brackets):
-1. Sets the admins. Only admins can use the admin commands listed in commands_admin.
-2. Sets autoreplies to be enabled for every conversation the bot is in.
-3. Sets the autoreplies for all conversations the bot is in.
-4. Sets "Dev Mode" to default to off for all conversations. Dev Mode will force the bot to print out all of it's replies to the console window instead of replying via Hangouts.
-5. Array of all of the commands that only admins will have access to use.
-6. Sets commands to be enabled for all chats.
-7. Sets chat forwarding for all chats to disabled. (When enabled, you must have a conversation object with a "forward_to" member that is set to a different conversation id.)
-8. Sets rename watching to enabled. (This is required to have /record record name changes.)
-9. Start of the conversations dictionary.
-10. Start of a conversation specific dictionary. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx".
-11. Sets the autoreplies for this specific conversation, which entirely overrides any autoreplies set for all conversations.
-12. Sets an autoreply keyword and reply. In this case, "whistle", "bot", and "whistlebot" are all keywords, and the reply will be the command /think, which will be given the entirety of what the user posted. For example: A user saying "Bot, how are you?" would cause the command "/think Bot, how are you?" to be ran. NOTE: The keywords are case-insensitive.
-13. Sets another autoreply keyword and reply. In this case, if a user says "trash," the Bot will reply with "You're trash." NOTE: The keywords are case-insensitive.
-14. Start of the "forward_to" array. All conversation IDs listed here will have this conversation forwarded to them.
-15. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx", and then commands will be forwarded to that conversation.
+Line by Line breakdown (excluding braces/brackets):  
+  
+1. Sets the admins. Only admins can use the admin commands listed in commands_admin.  
+2. Sets autoreplies to be enabled for every conversation the bot is in.  
+3. Sets the autoreplies for all conversations the bot is in.  
+4. Sets "Dev Mode" to default to off for all conversations. Dev Mode will force the bot to print out all of it's replies to the console window instead of replying via Hangouts.  
+5. Array of all of the commands that only admins will have access to use.  
+6. Sets commands to be enabled for all chats.  
+7. Sets chat forwarding for all chats to disabled. (When enabled, you must have a conversation object with a "forward_to" member that is set to a different conversation id.)  
+8. Sets rename watching to enabled. (This is required to have /record record name changes.)  
+9. Start of the conversations dictionary.  
+10. Start of a conversation specific dictionary. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx".  
+11. Sets the autoreplies for this specific conversation, which entirely overrides any autoreplies set for all conversations.  
+12. Sets an autoreply keyword and reply. In this case, "whistle", "bot", and "whistlebot" are all keywords, and the reply will be the command /think, which will be given the entirety of what the user posted. For example: A user saying "Bot, how are you?" would cause the command "/think Bot, how are you?" to be ran. NOTE: The keywords are case-insensitive.  
+13. Sets another autoreply keyword and reply. In this case, if a user says "trash," the Bot will reply with "You're trash." NOTE: The keywords are case-insensitive.  
+14. Start of the "forward_to" array. All conversation IDs listed here will have this conversation forwarded to them.  
+15. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx", and then commands will be forwarded to that conversation.  
 
 A cookies.txt file will also be created, holding the cookies that are valid for your login.  
   
