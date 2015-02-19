@@ -9,8 +9,9 @@ import traceback
 
 import hangups
 from hangups.ui.utils import get_conv_name
-import config
-import handlers
+
+from Core.Util import ConfigDict
+from Core import Handlers
 
 
 __version__ = '1.1'
@@ -37,7 +38,7 @@ class ConversationEvent(object):
         print()
 
 
-class HangupsBot(object):
+class HangoutsBot(object):
     """Hangouts bot listening on all conversations"""
 
     def __init__(self, cookies_path, config_path, max_retries=5):
@@ -52,7 +53,7 @@ class HangupsBot(object):
         self._message_handler = None  # MessageHandler
 
         # Load config file
-        self.config = config.Config(config_path)
+        self.config = ConfigDict.ConfigDict(config_path)
         self.devmode = self.get_config_suboption('', 'development_mode')
 
         # Handle signals on Unix
@@ -87,8 +88,8 @@ class HangupsBot(object):
             self.send_message_segments = dev_send_segments
             self.send_message = dev_send
         else:
-            self.send_message_segments = HangupsBot("cookies.txt", "config.json").send_message_segments
-            self.send_message = HangupsBot("cookies.txt", "config.json").send_message
+            self.send_message_segments = HangoutsBot("cookies.txt", "config.json").send_message_segments
+            self.send_message = HangoutsBot("cookies.txt", "config.json").send_message
 
 
     def restart(self):
@@ -235,6 +236,12 @@ class HangupsBot(object):
                 suboption = self.config[option]
             except KeyError:
                 suboption = None
+        except TypeError:
+            if self.config['conversations'] is None:
+                self.config['conversations'] = {}
+            elif self.config['conversations'][conv_id] is None:
+                self.config['conversations'][conv_id] = {}
+            suboption = None
         return suboption
 
     def _on_message_sent(self, future):
@@ -247,7 +254,7 @@ class HangupsBot(object):
     def _on_connect(self, initial_data):
         """Handle connecting for the first time"""
         print('Connected!')
-        self._message_handler = handlers.MessageHandler(self)
+        self._message_handler = Handlers.MessageHandler(self)
 
         self._user_list = hangups.UserList(self._client,
                                            initial_data.self_entity,
