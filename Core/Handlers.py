@@ -1,14 +1,15 @@
-import logging, shlex, asyncio
+import logging
+import os
+import shlex
+import asyncio
 import re
-from cleverbot import ChatterBotFactory, ChatterBotType
+
 import hangups
 
-from commands import command
+from Core.Commands import DefaultCommands
 
-words = open("wordlist.txt")
-list = []
-for line in words:
-    list.append(line.strip('\n'))
+from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
+from Core.Commands.DefaultCommands import DispatcherSingleton
 
 
 class MessageHandler(object):
@@ -18,11 +19,8 @@ class MessageHandler(object):
     blocked_list = []
 
     def __init__(self, bot, bot_command='/'):
-        from UtilBot import UtilBot
-
         self.bot = bot
         self.bot_command = bot_command
-        self.util_bot = UtilBot()
         MessageHandler.blocked_list = []
 
     @staticmethod
@@ -67,9 +65,9 @@ class MessageHandler(object):
             muted = not self.bot.config['conversations'][event.conv_id]['autoreplies_enabled']
         except KeyError:
             muted = False
-            import commands
+            from Core.Commands import DefaultCommands
 
-            commands.unmute(self.bot, event)
+            DefaultCommands.unmute(self.bot, event)
 
         event.text = event.text.replace('\xa0', ' ')
 
@@ -126,7 +124,7 @@ class MessageHandler(object):
                 return
 
         # Run command
-        yield from command.run(self.bot, event, *line_args[0:])
+        yield from DispatcherSingleton.run(self.bot, event, *line_args[0:])
 
     @asyncio.coroutine
     def handle_forward(self, event):
