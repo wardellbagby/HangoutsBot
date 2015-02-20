@@ -2,10 +2,12 @@ import logging
 import shlex
 import asyncio
 import re
+import os
+import glob
 
 import hangups
 
-from Core.Commands import DefaultCommands, ExtraCommands
+from Core.Commands import *
 
 from Core.Commands.Dispatcher import DispatcherSingleton
 
@@ -56,11 +58,11 @@ class MessageHandler(object):
                     event.text = "/help"
                 yield from self.handle_command(event)
             else:
-                    # Forward messages
-                    yield from self.handle_forward(event)
-                    if not muted:
-                        # Send automatic replies
-                        yield from self.handle_autoreply(event)
+                # Forward messages
+                yield from self.handle_forward(event)
+                if not muted:
+                    # Send automatic replies
+                    yield from self.handle_autoreply(event)
 
     @asyncio.coroutine
     def handle_command(self, event):
