@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 import traceback
 
-''' To use this, either add on to the ExtraCommands.py file or create your own Python file. Import the DispatcherSingle
+''' To use this, either add on to the ExtraCommands.py file or create your own Python file. Import the DispatcherSingleton
 and annotate any function that you wish to be a command with the @DispatcherSingleton.register annotation, and it will
 appear in the bot's help menu and be available to use.
 
@@ -14,9 +14,6 @@ that function will run whenever the Bot can't find a command that suits what the
 
 
 class CommandDispatcher(object):
-    last_recorder = None
-    last_recorded = None
-
 
     def __init__(self):
         self.commands = {}

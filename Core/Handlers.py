@@ -1,49 +1,23 @@
 import logging
-import os
 import shlex
 import asyncio
 import re
 
 import hangups
 
-from Core.Commands import DefaultCommands
+from Core.Commands import DefaultCommands, ExtraCommands
 
-from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
-from Core.Commands.DefaultCommands import DispatcherSingleton
+from Core.Commands.Dispatcher import DispatcherSingleton
 
 
 class MessageHandler(object):
     """Handle Hangups conversation events"""
-    cleversession = -1
-    dotalk = False
     blocked_list = []
 
     def __init__(self, bot, bot_command='/'):
         self.bot = bot
         self.bot_command = bot_command
         MessageHandler.blocked_list = []
-
-    @staticmethod
-    def shutup(bot, event):
-        if bot.conv_settings[event.conv_id] is None:
-            bot.conv_settings[event.conv_id] = {}
-        settings = dict(bot.conv_settings[event.conv_id])
-        settings['clever'] = False
-        bot.conv_settings[event.conv_id] = settings
-
-    @staticmethod
-    def speakup(bot, event):
-        if MessageHandler.cleversession is None:
-            factory = ChatterBotFactory()
-            cleverbotter = factory.create(ChatterBotType.CLEVERBOT)
-            MessageHandler.cleversession = cleverbotter.create_session()
-
-        if bot.conv_settings[event.conv_id] is None:
-            bot.conv_settings[event.conv_id] = {}
-        settings = dict(bot.conv_settings[event.conv_id])
-        settings['clever'] = True
-        bot.conv_settings[event.conv_id] = settings
-
 
     @staticmethod
     def word_in_text(word, text):

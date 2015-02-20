@@ -13,14 +13,6 @@ for line in words:
     word_list.append(line.strip('\n'))
 word_list.sort()
 
-names = []
-names.append("WHISTLE")
-names.append("BOT")
-names.append("WHISTLEBOT")
-names.append("ROBOT")
-names.append("COI")
-nameregex = re.compile('\\b(' + '|'.join(names) + ')\\b')
-
 
 def check(string):
     return string.replace("&#39", "'")

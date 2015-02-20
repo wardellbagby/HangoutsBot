@@ -64,7 +64,7 @@ Upon connection, test to make sure that the bot is functioning properly by start
 
 Adding Functionality
 -------
-Any function created in the ExtraCommands.py file (or any .py that imports the DispatcherSingleton) and decorated with the @DispatcherSingle.register annotation will be automatically picked up by the bot upon next restart. Commands are very simple and should be in the style of:  
+Any function created in the ExtraCommands.py file (or any .py that imports the DispatcherSingleton and is imported in the Handlers.py file) and decorated with the @DispatcherSingle.register annotation will be automatically picked up by the bot upon next restart. Commands are very simple and should be in the style of:  
 
 ```python  
 @DispatcherSingleton.register

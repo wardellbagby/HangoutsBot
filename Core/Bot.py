@@ -148,8 +148,6 @@ class HangoutsBot(object):
 
     def handle_membership_change(self, conv_event):
         """Handle conversation membership change"""
-
-        # TODO Translate this....
         event = ConversationEvent(self, conv_event)
 
         # Don't handle events caused by the bot himself
@@ -193,18 +191,20 @@ class HangoutsBot(object):
         if not self.get_config_suboption(event.conv_id, 'rename_watching_enabled'):
             return
 
-        if event.conv_event.new_name == '':
-            text = "Name cleared"
-            directory = "Records" + "\\" + str(event.conv_id)
-            filename = str(date.today()) + ".txt"
-            file = open(directory + '\\' + filename, "a+")
-            file.write(text + '\n')
-        else:
-            text = "Name changed to: "+conv_event.new_name
-            directory = "Records" + "\\" + str(event.conv_id)
-            filename = str(date.today()) + ".txt"
-            file = open(directory + '\\' + filename, "a+")
-            file.write(text + '\n')
+        # TODO This needs to refactored. No extra-command specific logic should be in the Bot file.
+        if self._message_handler.DispatcherSingleton.commands['record']:
+            if event.conv_event.new_name == '':
+                text = "Name cleared"
+                directory = "Records" + "\\" + str(event.conv_id)
+                filename = str(date.today()) + ".txt"
+                file = open(directory + '\\' + filename, "a+")
+                file.write(text + '\n')
+            else:
+                text = "Name changed to: " + conv_event.new_name
+                directory = "Records" + "\\" + str(event.conv_id)
+                filename = str(date.today()) + ".txt"
+                file = open(directory + '\\' + filename, "a+")
+                file.write(text + '\n')
 
     def send_message(self, conversation, text):
         """"Send simple chat message"""
