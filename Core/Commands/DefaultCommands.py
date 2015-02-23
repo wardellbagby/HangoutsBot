@@ -520,7 +520,7 @@ def block(bot, event, username=None, *args):
         bot.send_message_segments(event.conv, segments)
         return
     username_lower = username.strip().lower()
-    for u in sorted(event.conv.users(), key=lambda x: x.full_name.split()[-1]):
+    for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
         if not username_lower in u.full_name.lower():
             continue
 
