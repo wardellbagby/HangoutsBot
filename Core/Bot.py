@@ -9,6 +9,7 @@ import traceback
 
 import hangups
 from hangups.ui.utils import get_conv_name
+from Core.Commands.Dispatcher import DispatcherSingleton
 
 from Core.Util import ConfigDict
 from Core import Handlers
@@ -216,7 +217,7 @@ class HangoutsBot(object):
             return
 
         # TODO This needs to refactored. No extra-command specific logic should be in the Bot file.
-        if self._message_handler.DispatcherSingleton.commands['record']:
+        if DispatcherSingleton.commands['record']:
             if event.conv_event.new_name == '':
                 text = "Name cleared"
                 directory = "Records" + "\\" + str(event.conv_id)
