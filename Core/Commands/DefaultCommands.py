@@ -520,7 +520,7 @@ def block(bot, event, username=None, *args):
         bot.send_message_segments(event.conv, segments)
         return
     username_lower = username.strip().lower()
-    for u in sorted(bot._user_list._user_dict.values(), key=lambda x: x.full_name.split()[-1]):
+    for u in sorted(event.conv.users(), key=lambda x: x.full_name.split()[-1]):
         if not username_lower in u.full_name.lower():
             continue
 
@@ -530,6 +530,7 @@ def block(bot, event, username=None, *args):
             return
         MessageHandler.blocked_list.append(u)
         bot.send_message(event.conv, "Blocked User: {}".format(u.full_name))
+        return
 
 
 @DispatcherSingleton.register
