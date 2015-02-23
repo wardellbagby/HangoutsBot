@@ -541,6 +541,8 @@ def vote(bot, event, set_vote=None, *args):
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /vote <yea|yes|for|nay|no|against (used to cast a vote)>'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /vote cancel'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /vote'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment(
@@ -550,6 +552,16 @@ def vote(bot, event, set_vote=None, *args):
         bot.send_message_segments(event.conv, segments)
     else:
         global vote_subject, vote_callback, voted
+
+        if set_vote is not None and set_vote.lower() == "cancel":
+            if vote_subject is not None and voted is not None:
+                bot.send_message(event.conv, 'Vote "{}" cancelled.'.format(vote_subject))
+                vote_subject = None
+                voted = None
+            else:
+                bot.send_message(event.conv, 'No vote currently in process.')
+            return
+
         if vote_subject is None and set_vote is not None:
             vote_subject = set_vote + ' ' + ' '.join(args)
             if vote_subject.lower().strip() == "admin":
@@ -612,7 +624,7 @@ def vote(bot, event, set_vote=None, *args):
                 voted = None
         else:
             if vote_subject is not None:
-                segments = [hangups.ChatMessageSegment("Vote Status:", is_bold=True),
+                segments = [hangups.ChatMessageSegment('Vote Status for "{}":'.format(vote_subject), is_bold=True),
                             hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
                 for person in voted.keys():
                     set_vote = voted[person]
