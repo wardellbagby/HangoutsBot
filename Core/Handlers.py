@@ -33,7 +33,7 @@ class MessageHandler(object):
     @asyncio.coroutine
     def handle(self, event):
         # Use this to add commands that are based off of what text the user inputs when it isn't a command.
-        if event.user.is_self or event.user_id in MessageHandler.blocked_list:
+        if event.user.is_self or event.user_id in [x.id_ for x in MessageHandler.blocked_list]:
             return
         if event.conv_id not in self.bot.conv_settings:
             self.bot.conv_settings[event.conv_id] = {}
@@ -89,15 +89,25 @@ class MessageHandler(object):
             return
 
         # Test if user has permissions for running command
+
+        has_permission = False
         commands_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_admin')
-        if commands_admin_list and line_args[0].lower().replace('/', '') in commands_admin_list:
+        if commands_admin_list and line_args[0].lower().replace(self.bot_command, '') in commands_admin_list:
             admins_list = self.bot.get_config_suboption(event.conv_id, 'admins')
-            if event.user_id.chat_id not in admins_list:
-                if not self.bot.dev:
-                    self.bot.send_message(event.conv,
-                                          'I\'m sorry, {}. I\'m afraid I can\'t do that.'.format(
-                                              event.user.full_name))
-                return
+            if admins_list is not None and event.user_id.chat_id in admins_list:
+                has_permission = True
+            else:
+                has_permission = False
+
+        # TODO This is untested.
+        if not has_permission:
+            commands_conv_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
+            if commands_conv_admin_list and line_args[0].lower().replace(self.bot_command, '') in commands_conv_admin_list:
+                conv_admin = self.bot.get_config_suboption(event.conv_id, 'conversation_admin')
+                if event.user_id.chat_id != conv_admin:
+                    if not self.bot.dev:
+                        self.bot.send_message(event.conv, "Sorry {}, I can't let you do that.".format(event.user.full_name))
+                        return
 
         # Run command
         yield from DispatcherSingleton.run(self.bot, event, *line_args[0:])

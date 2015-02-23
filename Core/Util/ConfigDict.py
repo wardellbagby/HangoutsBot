@@ -3,11 +3,11 @@ import collections, functools, json
 
 class ConfigDict(collections.MutableMapping):
     """Configuration JSON storage class"""
+
     def __init__(self, filename, default=None):
         self.filename = filename
         self.default = None
         self.config = {}
-        self.changed = False
         self.load()
 
     def load(self):
@@ -16,19 +16,15 @@ class ConfigDict(collections.MutableMapping):
             self.config = json.loads(open(self.filename, encoding='utf-8').read(), encoding='utf-8')
         except IOError:
             self.config = {}
-        self.changed = False
 
     def loads(self, json_str):
         """Load config from JSON string"""
         self.config = json.loads(json_str)
-        self.changed = True
 
     def save(self):
         """Save config to file (only if config has changed)"""
-        if self.changed:
-            with open(self.filename, 'w') as f:
-                json.dump(self.config, f, indent=2, sort_keys=True)
-                self.changed = False
+        with open(self.filename, 'w') as f:
+            json.dump(self.config, f, indent=2, sort_keys=True)
 
     def get_by_path(self, keys_list):
         """Get item from config by path (list of keys)"""
@@ -46,11 +42,9 @@ class ConfigDict(collections.MutableMapping):
 
     def __setitem__(self, key, value):
         self.config[key] = value
-        self.changed = True
 
     def __delitem__(self, key):
         del self.config[key]
-        self.changed = True
 
     def __iter__(self):
         return iter(self.config)

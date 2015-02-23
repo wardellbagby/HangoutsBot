@@ -14,6 +14,9 @@ from Core.Util import UtilBot
 
 clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_session()
 last_recorded, last_recorder = None, None
+voted = {}
+vote_subject = None
+vote_callback = None
 
 
 @DispatcherSingleton.register_unknown
@@ -501,12 +504,121 @@ def config(bot, event, cmd=None, *args):
 
 
 @DispatcherSingleton.register
-def block(bot, event, username, *args):
+def block(bot, event, username=None, *args):
+    from Core.Handlers import MessageHandler
+
+    if not username:
+        segments = [hangups.ChatMessageSegment("Blocked Users: ", is_bold=True),
+                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
+        for user in MessageHandler.blocked_list:
+            segments.append(hangups.ChatMessageSegment(user.full_name))
+            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+        if len(MessageHandler.blocked_list) == 0:
+            segments.append(hangups.ChatMessageSegment("No users blocked."))
+        else:
+            segments.pop()
+        bot.send_message_segments(event.conv, segments)
+        return
     username_lower = username.strip().lower()
     for u in sorted(bot._user_list._user_dict.values(), key=lambda x: x.full_name.split()[-1]):
         if not username_lower in u.full_name.lower():
             continue
-        from Core.Handlers import MessageHandler
 
-        MessageHandler.blocked_list.append(u.id_)
+        if u in MessageHandler.blocked_list:
+            MessageHandler.blocked_list.remove(u)
+            bot.send_message(event.conv, "Unblocked User: {}".format(u.full_name))
+            return
+        MessageHandler.blocked_list.append(u)
         bot.send_message(event.conv, "Blocked User: {}".format(u.full_name))
+
+
+@DispatcherSingleton.register
+def vote(bot, event, set_vote=None, *args):
+    if ''.join(args) == '?':
+        segments = [hangups.ChatMessageSegment('Vote', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /vote <subject to vote on>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /vote <yea|yes|for|nay|no|against (used to cast a vote)>'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /vote'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment(
+                        'Usage: /vote admin (used to start a vote for a new conversation admin)'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Purpose: Starts a vote in which a 50% majority wins.')]
+        bot.send_message_segments(event.conv, segments)
+    else:
+        global vote_subject, vote_callback, voted
+        if vote_subject is None and set_vote is not None:
+            vote_subject = set_vote + ' ' + ' '.join(args)
+            if vote_subject.lower().strip() == "admin":
+
+                vote_subject = '{} for Conversation Admin for chat {}'.format(event.user.full_name,
+                                                                              get_conv_name(event.conv))
+
+                def set_conv_admin(won):
+                    if won:
+                        try:
+                            bot.config["conversations"][event.conv_id]["conversation_admin"] = event.user.id_[0]
+                        except (KeyError, TypeError):
+                            bot.config["conversations"][event.conv_id] = {}
+                            bot.config["conversations"][event.conv_id]["admin"] = event.user.id_[0]
+                        bot.config.save()
+
+                vote_callback = set_conv_admin
+            voted = {}
+            for u in event.conv.users:
+                if not u.is_self:
+                    voted[u.full_name] = None
+            bot.send_message(event.conv, "Vote started for subject: " + vote_subject)
+        elif set_vote is not None:
+            if event.user.full_name in voted.keys():
+                set_vote = set_vote.lower()
+                if set_vote == "true" or set_vote == "yes" or set_vote == "yea" or set_vote == "for" or set_vote == "yay":
+                    voted[event.user.full_name] = True
+                elif set_vote == "false" or set_vote == "no" or set_vote == "nay" or set_vote == "against":
+                    voted[event.user.full_name] = False
+                else:
+                    bot.send_message(event.conv,
+                                     "{}, you did not enter a valid vote parameter.".format(event.user.full_name))
+                    return
+            true_count = list(voted.values()).count(True)
+            false_count = list(voted.values()).count(False)
+            total = len(voted.values())
+            if float(true_count) / float(total) > .5:
+                for key in voted.keys():
+                    voted[key] = True
+            elif float(false_count) / float(total) > .5:
+                for key in voted.keys():
+                    voted[key] = False
+            if not (None in voted.values()):
+                yeas = 0
+                nahs = 0
+                for set_vote in voted.values():
+                    if set_vote:
+                        yeas += 1
+                    else:
+                        nahs += 1
+                if yeas != nahs:
+                    bot.send_message(event.conv,
+                                     'In the matter of: "' + vote_subject + '", the ' + (
+                                         'Yeas' if yeas > nahs else 'Nays') + ' have it.')
+                else:
+                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(vote_subject))
+                if vote_callback is not None:
+                    vote_callback(yeas > nahs)
+                vote_subject = None
+                voted = None
+        else:
+            if vote_subject is not None:
+                segments = [hangups.ChatMessageSegment("Vote Status:", is_bold=True),
+                            hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
+                for person in voted.keys():
+                    set_vote = voted[person]
+                    segments.append(hangups.ChatMessageSegment(
+                        person + " : " + ("For" if set_vote else "Not Voted" if set_vote == None else "Against")))
+                    segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+                bot.send_message_segments(event.conv, segments)
+            else:
+                bot.send_message(event.conv, "No vote currently started.")

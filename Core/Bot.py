@@ -16,6 +16,30 @@ from Core import Handlers
 
 __version__ = '1.1'
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+base_config = '''{
+  "admins": ["YOUR-USER-ID-HERE"],
+  "autoreplies_enabled": true,
+  "autoreplies": [
+    [["bot", "robot", "Yo"], "/think {}"]
+  ],
+  "development_mode": false,
+  "commands_admin": ["hangouts", "reload", "quit", "restart", "config", "restart", "block"],
+  "commands_conversation_admin": ["leave", "echo", "block"]
+  "commands_enabled": true,
+  "forwarding_enabled": false,
+  "rename_watching_enabled": true,
+  "conversations": {
+    "CONV-ID-HERE": {
+      "autoreplies": [
+        [["whistle", "bot", "whistlebot"], "/think {}"],
+        [["trash"], "You're trash"]
+      ],
+      "forward_to": [
+        "CONV1_ID"
+      ]
+    }
+  }
+}'''
 
 
 class ConversationEvent(object):
