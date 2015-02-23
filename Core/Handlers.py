@@ -99,7 +99,7 @@ class MessageHandler(object):
             else:
                 has_permission = False
 
-        # TODO This is untested.
+        # TODO Sporadically fails. Need to investigate.
         if not has_permission:
             commands_conv_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
             if commands_conv_admin_list and line_args[0].lower().replace(self.bot_command, '') in commands_conv_admin_list:

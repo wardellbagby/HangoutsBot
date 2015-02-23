@@ -534,7 +534,7 @@ def block(bot, event, username=None, *args):
 
 @DispatcherSingleton.register
 def vote(bot, event, set_vote=None, *args):
-    if ''.join(args) == '?':
+    if set_vote == '?':
         segments = [hangups.ChatMessageSegment('Vote', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /vote <subject to vote on>'),
@@ -542,6 +542,8 @@ def vote(bot, event, set_vote=None, *args):
                     hangups.ChatMessageSegment('Usage: /vote <yea|yes|for|nay|no|against (used to cast a vote)>'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /vote cancel'),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('Usage: /vote abstain'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /vote'),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
@@ -552,6 +554,14 @@ def vote(bot, event, set_vote=None, *args):
         bot.send_message_segments(event.conv, segments)
     else:
         global vote_subject, vote_callback, voted
+
+        if set_vote is not None and set_vote.lower() == 'abstain':
+            if vote_subject is not None and voted is not None:
+                bot.send_message(event.conv, 'User {} has abstained from voting.').format(event.user.full_name)
+                voted.pop(event.user.full_name, None)
+            else:
+                bot.send_message(event.conv, 'No vote currently in process to abstain from.')
+            return
 
         if set_vote is not None and set_vote.lower() == "cancel":
             if vote_subject is not None and voted is not None:
@@ -581,13 +591,15 @@ def vote(bot, event, set_vote=None, *args):
                 vote_callback = set_conv_admin
             voted = {}
             for u in event.conv.users:
-                if not u.is_self:
+                from Core.Handlers import MessageHandler
+
+                if not u.is_self and u.full_name not in MessageHandler.blocked_list:
                     voted[u.full_name] = None
             bot.send_message(event.conv, "Vote started for subject: " + vote_subject)
         elif set_vote is not None:
             if event.user.full_name in voted.keys():
                 set_vote = set_vote.lower()
-                if set_vote == "true" or set_vote == "yes" or set_vote == "yea" or set_vote == "for" or set_vote == "yay":
+                if set_vote == "true" or set_vote == "yes" or set_vote == "yea" or set_vote == "for" or set_vote == "yay" or set_vote == "aye":
                     voted[event.user.full_name] = True
                 elif set_vote == "false" or set_vote == "no" or set_vote == "nay" or set_vote == "against":
                     voted[event.user.full_name] = False
