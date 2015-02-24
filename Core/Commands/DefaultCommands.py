@@ -505,30 +505,29 @@ def config(bot, event, cmd=None, *args):
 
 @DispatcherSingleton.register
 def block(bot, event, username=None, *args):
-    from Core.Handlers import MessageHandler
-
     if not username:
         segments = [hangups.ChatMessageSegment("Blocked Users: ", is_bold=True),
-                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
-        for user in MessageHandler.blocked_list:
-            segments.append(hangups.ChatMessageSegment(user.full_name))
-            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
-        if len(MessageHandler.blocked_list) == 0:
-            segments.append(hangups.ChatMessageSegment("No users blocked."))
-        else:
+                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment("No users blocked.")]
+        if len(UtilBot.check_blocklist_for_conversation(event.conv_id)) > 0:
+            segments.pop()
+            for user in event.conv.users:
+                if UtilBot.check_blocklist_for_user(event.conv_id, user.id_):
+                    segments.append(hangups.ChatMessageSegment(user.full_name))
+                    segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
             segments.pop()
         bot.send_message_segments(event.conv, segments)
         return
     username_lower = username.strip().lower()
     for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
-        if not username_lower in u.full_name.lower():
+        if not username_lower in u.full_name.lower() or event.user.is_self:
             continue
 
-        if u in MessageHandler.blocked_list:
-            MessageHandler.blocked_list.remove(u)
+        if UtilBot.check_blocklist_for_user(event.conv_id, event.user_id):
+            UtilBot.remove_from_blocklist(event.conv_id, event.user_id)
             bot.send_message(event.conv, "Unblocked User: {}".format(u.full_name))
             return
-        MessageHandler.blocked_list.append(u)
+        UtilBot.add_to_blocklist(event.conv_id, u.id_)
         bot.send_message(event.conv, "Blocked User: {}".format(u.full_name))
         return
 

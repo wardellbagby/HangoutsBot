@@ -2,24 +2,21 @@ import logging
 import shlex
 import asyncio
 import re
-import os
-import glob
 
 import hangups
 
-from Core.Commands import *
+from Core.Commands import * # Makes sure that all commands in the Command directory are imported and registered.
 
 from Core.Commands.Dispatcher import DispatcherSingleton
+from Core.Util.UtilBot import check_blocklist_for_user
 
 
 class MessageHandler(object):
     """Handle Hangups conversation events"""
-    blocked_list = []
 
     def __init__(self, bot, bot_command='/'):
         self.bot = bot
         self.bot_command = bot_command
-        MessageHandler.blocked_list = []
 
     @staticmethod
     def word_in_text(word, text):
@@ -32,8 +29,7 @@ class MessageHandler(object):
 
     @asyncio.coroutine
     def handle(self, event):
-        # Use this to add commands that are based off of what text the user inputs when it isn't a command.
-        if event.user.is_self or event.user_id in [x.id_ for x in MessageHandler.blocked_list]:
+        if event.user.is_self or check_blocklist_for_user(event.conv_id, event.user_id):
             return
         if event.conv_id not in self.bot.conv_settings:
             self.bot.conv_settings[event.conv_id] = {}
@@ -99,14 +95,15 @@ class MessageHandler(object):
             else:
                 has_permission = False
 
-        # TODO Sporadically fails. Need to investigate.
         if not has_permission:
             commands_conv_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
-            if commands_conv_admin_list and line_args[0].lower().replace(self.bot_command, '') in commands_conv_admin_list:
+            if commands_conv_admin_list and line_args[0].lower().replace(self.bot_command,
+                                                                         '') in commands_conv_admin_list:
                 conv_admin = self.bot.get_config_suboption(event.conv_id, 'conversation_admin')
                 if event.user_id.chat_id != conv_admin:
                     if not self.bot.dev:
-                        self.bot.send_message(event.conv, "Sorry {}, I can't let you do that.".format(event.user.full_name))
+                        self.bot.send_message(event.conv,
+                                              "Sorry {}, I can't let you do that.".format(event.user.full_name))
                         return
 
         # Run command

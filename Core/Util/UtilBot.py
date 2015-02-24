@@ -12,6 +12,30 @@ word_list = []
 for line in words:
     word_list.append(line.strip('\n'))
 word_list.sort()
+_blocklist = {}
+
+
+def add_to_blocklist(conv_id, user_id):
+    if conv_id not in _blocklist.keys():
+        _blocklist[conv_id] = []
+    _blocklist[conv_id].append(user_id)
+
+
+def check_blocklist_for_user(conv_id, user_id):
+    if conv_id in _blocklist.keys():
+        return user_id in _blocklist[conv_id]
+    return False
+
+
+def check_blocklist_for_conversation(conv_id):
+    if conv_id in _blocklist.keys():
+        return _blocklist[conv_id]
+    return []
+
+
+def remove_from_blocklist(conv_id, user_id):
+    if check_blocklist_for_user(conv_id, user_id):
+        _blocklist[conv_id].remove(user_id)
 
 
 def check(string):
