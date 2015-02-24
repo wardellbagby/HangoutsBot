@@ -8,7 +8,7 @@ import hangups
 from Core.Commands import * # Makes sure that all commands in the Command directory are imported and registered.
 
 from Core.Commands.Dispatcher import DispatcherSingleton
-from Core.Util.UtilBot import check_blocklist_for_user
+from Core.Util.UtilBot import is_user_blocked
 
 
 class MessageHandler(object):
@@ -29,7 +29,7 @@ class MessageHandler(object):
 
     @asyncio.coroutine
     def handle(self, event):
-        if event.user.is_self or check_blocklist_for_user(event.conv_id, event.user_id):
+        if event.user.is_self or is_user_blocked(event.conv_id, event.user_id):
             return
         if event.conv_id not in self.bot.conv_settings:
             self.bot.conv_settings[event.conv_id] = {}

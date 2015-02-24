@@ -509,10 +509,10 @@ def block(bot, event, username=None, *args):
         segments = [hangups.ChatMessageSegment("Blocked Users: ", is_bold=True),
                     hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment("No users blocked.")]
-        if len(UtilBot.check_blocklist_for_conversation(event.conv_id)) > 0:
+        if len(UtilBot.get_blocked_users_in_conversations(event.conv_id)) > 0:
             segments.pop()
             for user in event.conv.users:
-                if UtilBot.check_blocklist_for_user(event.conv_id, user.id_):
+                if UtilBot.is_user_blocked(event.conv_id, user.id_):
                     segments.append(hangups.ChatMessageSegment(user.full_name))
                     segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
             segments.pop()
@@ -523,7 +523,7 @@ def block(bot, event, username=None, *args):
         if not username_lower in u.full_name.lower() or event.user.is_self:
             continue
 
-        if UtilBot.check_blocklist_for_user(event.conv_id, event.user_id):
+        if UtilBot.is_user_blocked(event.conv_id, event.user_id):
             UtilBot.remove_from_blocklist(event.conv_id, event.user_id)
             bot.send_message(event.conv, "Unblocked User: {}".format(u.full_name))
             return
@@ -591,9 +591,7 @@ def vote(bot, event, set_vote=None, *args):
                 vote_callback = set_conv_admin
             voted = {}
             for u in event.conv.users:
-                from Core.Handlers import MessageHandler
-
-                if not u.is_self and u.full_name not in MessageHandler.blocked_list:
+                if not u.is_self and not UtilBot.is_user_blocked(event.conv, u.id_):
                     voted[u.full_name] = None
             bot.send_message(event.conv, "Vote started for subject: " + vote_subject)
         elif set_vote is not None:

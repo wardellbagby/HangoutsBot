@@ -21,20 +21,20 @@ def add_to_blocklist(conv_id, user_id):
     _blocklist[conv_id].append(user_id)
 
 
-def check_blocklist_for_user(conv_id, user_id):
+def is_user_blocked(conv_id, user_id):
     if conv_id in _blocklist.keys():
         return user_id in _blocklist[conv_id]
     return False
 
 
-def check_blocklist_for_conversation(conv_id):
+def get_blocked_users_in_conversations(conv_id):
     if conv_id in _blocklist.keys():
         return _blocklist[conv_id]
     return []
 
 
 def remove_from_blocklist(conv_id, user_id):
-    if check_blocklist_for_user(conv_id, user_id):
+    if is_user_blocked(conv_id, user_id):
         _blocklist[conv_id].remove(user_id)
 
 
