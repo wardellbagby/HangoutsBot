@@ -523,8 +523,8 @@ def block(bot, event, username=None, *args):
         if not username_lower in u.full_name.lower() or event.user.is_self:
             continue
 
-        if UtilBot.is_user_blocked(event.conv_id, event.user_id):
-            UtilBot.remove_from_blocklist(event.conv_id, event.user_id)
+        if UtilBot.is_user_blocked(event.conv_id, u.id_):
+            UtilBot.remove_from_blocklist(event.conv_id, u.id_)
             bot.send_message(event.conv, "Unblocked User: {}".format(u.full_name))
             return
         UtilBot.add_to_blocklist(event.conv_id, u.id_)
@@ -639,7 +639,7 @@ def vote(bot, event, set_vote=None, *args):
                 for person in voted.keys():
                     set_vote = voted[person]
                     segments.append(hangups.ChatMessageSegment(
-                        person + " : " + ("For" if set_vote else "Not Voted" if set_vote == None else "Against")))
+                        person + " : " + ("For" if set_vote else "Not Voted" if set_vote is None else "Against")))
                     segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
                 bot.send_message_segments(event.conv, segments)
             else:
