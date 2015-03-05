@@ -66,11 +66,11 @@ class ConversationEvent(object):
 class HangoutsBot(object):
     """Hangouts bot listening on all conversations"""
 
-    def __init__(self, cookies_path, config_path, max_retries=5):
+    def __init__(self, cookies_path, config_path, command_char='/', max_retries=5):
         self._client = None
         self._cookies_path = cookies_path
         self._max_retries = max_retries
-        self.conv_settings = {}
+        self._command_char = command_char
 
         # These are populated by on_connect when it's called.
         self._conv_list = None  # hangups.ConversationList
@@ -279,7 +279,7 @@ class HangoutsBot(object):
     def _on_connect(self, initial_data):
         """Handle connecting for the first time"""
         print('Connected!')
-        self._message_handler = Handlers.MessageHandler(self)
+        self._message_handler = Handlers.MessageHandler(self, command_char=self._command_char)
 
         self._user_list = hangups.UserList(self._client,
                                            initial_data.self_entity,
