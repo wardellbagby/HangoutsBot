@@ -555,14 +555,45 @@ def vote(bot, event, set_vote=None, *args):
     else:
         global vote_subject, vote_callback, voted
 
+        # Removes user from having to vote.
         if set_vote is not None and set_vote.lower() == 'abstain':
             if vote_subject is not None and voted is not None:
                 bot.send_message(event.conv, 'User {} has abstained from voting.').format(event.user.full_name)
                 voted.pop(event.user.full_name, None)
             else:
                 bot.send_message(event.conv, 'No vote currently in process to abstain from.')
+
+            # Check if the vote has ended
+            true_count = list(voted.values()).count(True)
+            false_count = list(voted.values()).count(False)
+            total = len(voted.values())
+            if float(true_count) / float(total) > .5:
+                for key in voted.keys():
+                    voted[key] = True
+            elif float(false_count) / float(total) > .5:
+                for key in voted.keys():
+                    voted[key] = False
+            if not (None in voted.values()):
+                yeas = 0
+                nahs = 0
+                for set_vote in voted.values():
+                    if set_vote:
+                        yeas += 1
+                    else:
+                        nahs += 1
+                if yeas != nahs:
+                    bot.send_message(event.conv,
+                                     'In the matter of: "' + vote_subject + '", the ' + (
+                                         'Yeas' if yeas > nahs else 'Nays') + ' have it.')
+                else:
+                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(vote_subject))
+                if vote_callback is not None:
+                    vote_callback(yeas > nahs)
+                vote_subject = None
+                voted = None
             return
 
+        # Cancels the vote
         if set_vote is not None and set_vote.lower() == "cancel":
             if vote_subject is not None and voted is not None:
                 bot.send_message(event.conv, 'Vote "{}" cancelled.'.format(vote_subject))
@@ -572,9 +603,10 @@ def vote(bot, event, set_vote=None, *args):
                 bot.send_message(event.conv, 'No vote currently in process.')
             return
 
+        # Stats a new vote
         if vote_subject is None and set_vote is not None:
             vote_subject = set_vote + ' ' + ' '.join(args)
-            if vote_subject.lower().strip() == "admin":
+            if vote_subject.lower().strip() == "admin":  # For the special Conversation Admin case.
 
                 vote_subject = '{} for Conversation Admin for chat {}'.format(event.user.full_name,
                                                                               get_conv_name(event.conv))
@@ -594,6 +626,8 @@ def vote(bot, event, set_vote=None, *args):
                 if not u.is_self and not UtilBot.is_user_blocked(event.conv, u.id_):
                     voted[u.full_name] = None
             bot.send_message(event.conv, "Vote started for subject: " + vote_subject)
+
+        # Cast a vote.
         elif set_vote is not None:
             if event.user.full_name in voted.keys():
                 set_vote = set_vote.lower()
@@ -632,6 +666,7 @@ def vote(bot, event, set_vote=None, *args):
                     vote_callback(yeas > nahs)
                 vote_subject = None
                 voted = None
+        # Check the status of a vote.
         else:
             if vote_subject is not None:
                 segments = [hangups.ChatMessageSegment('Vote Status for "{}":'.format(vote_subject), is_bold=True),
