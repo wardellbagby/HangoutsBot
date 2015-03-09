@@ -558,8 +558,8 @@ def vote(bot, event, set_vote=None, *args):
         # Removes user from having to vote.
         if set_vote is not None and set_vote.lower() == 'abstain':
             if vote_subject is not None and voted is not None:
-                bot.send_message(event.conv, 'User {} has abstained from voting.').format(event.user.full_name)
-                voted.pop(event.user.full_name, None)
+                bot.send_message(event.conv, 'User {} has abstained from voting.'.format(event.user.full_name))
+                del voted[event.user.full_name]
             else:
                 bot.send_message(event.conv, 'No vote currently in process to abstain from.')
 
