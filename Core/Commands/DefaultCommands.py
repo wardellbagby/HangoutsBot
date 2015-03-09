@@ -14,9 +14,6 @@ from Core.Util import UtilBot
 
 clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_session()
 last_recorded, last_recorder = None, None
-voted = {}
-vote_subject = None
-vote_callback = None
 
 
 @DispatcherSingleton.register_unknown
@@ -553,58 +550,41 @@ def vote(bot, event, set_vote=None, *args):
                     hangups.ChatMessageSegment('Purpose: Starts a vote in which a 50% majority wins.')]
         bot.send_message_segments(event.conv, segments)
     else:
-        global vote_subject, vote_callback, voted
 
         # Removes user from having to vote.
         if set_vote is not None and set_vote.lower() == 'abstain':
-            if vote_subject is not None and voted is not None:
+            if UtilBot.is_vote_started(event.conv_id):
                 bot.send_message(event.conv, 'User {} has abstained from voting.'.format(event.user.full_name))
-                del voted[event.user.full_name]
+                if UtilBot.abstain_voter(event.conv_id, event.user.full_name):
+                    bot.send_message(event.conv, "The vote has ended because all voters have abstained.")
+                    return
             else:
                 bot.send_message(event.conv, 'No vote currently in process to abstain from.')
 
             # Check if the vote has ended
-            true_count = list(voted.values()).count(True)
-            false_count = list(voted.values()).count(False)
-            total = len(voted.values())
-            if float(true_count) / float(total) > .5:
-                for key in voted.keys():
-                    voted[key] = True
-            elif float(false_count) / float(total) > .5:
-                for key in voted.keys():
-                    voted[key] = False
-            if not (None in voted.values()):
-                yeas = 0
-                nahs = 0
-                for set_vote in voted.values():
-                    if set_vote:
-                        yeas += 1
-                    else:
-                        nahs += 1
-                if yeas != nahs:
+            vote_result = UtilBot.check_if_vote_finished(event.conv_id)
+            if vote_result is not None:
+                if vote_result != 0:
                     bot.send_message(event.conv,
-                                     'In the matter of: "' + vote_subject + '", the ' + (
-                                         'Yeas' if yeas > nahs else 'Nays') + ' have it.')
+                                     'In the matter of: "' + UtilBot.get_vote_subject(event.conv_id) + '", the ' + (
+                                         'Yeas' if vote_result else 'Nays') + ' have it.')
                 else:
-                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(vote_subject))
-                if vote_callback is not None:
-                    vote_callback(yeas > nahs)
-                vote_subject = None
-                voted = None
+                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
+                        UtilBot.get_vote_subject(event.conv_id)))
+            UtilBot.end_vote(event.conv_id)
             return
 
         # Cancels the vote
         if set_vote is not None and set_vote.lower() == "cancel":
-            if vote_subject is not None and voted is not None:
-                bot.send_message(event.conv, 'Vote "{}" cancelled.'.format(vote_subject))
-                vote_subject = None
-                voted = None
+            if UtilBot.is_vote_started(event.conv_id):
+                bot.send_message(event.conv, 'Vote "{}" cancelled.'.format(UtilBot.get_vote_subject(event.conv_id)))
+                UtilBot.end_vote(event.conv_id)
             else:
-                bot.send_message(event.conv, 'No vote currently in process.')
+                bot.send_message(event.conv, 'No vote currently started.')
             return
 
-        # Stats a new vote
-        if vote_subject is None and set_vote is not None:
+        # Starts a new vote
+        if not UtilBot.is_vote_started(event.conv_id) and set_vote is not None:
             vote_subject = set_vote + ' ' + ' '.join(args)
             if vote_subject.lower().strip() == "admin":  # For the special Conversation Admin case.
 
@@ -620,62 +600,46 @@ def vote(bot, event, set_vote=None, *args):
                             bot.config["conversations"][event.conv_id]["admin"] = event.user.id_[0]
                         bot.config.save()
 
-                vote_callback = set_conv_admin
-            voted = {}
-            for u in event.conv.users:
-                if not u.is_self and not UtilBot.is_user_blocked(event.conv, u.id_):
-                    voted[u.full_name] = None
+                UtilBot.set_vote_callback(event.conv_id, set_conv_admin)
+
+            UtilBot.set_vote_subject(event.conv_id, vote_subject)
+            UtilBot.init_new_vote(event.conv_id, event.conv.users)
             bot.send_message(event.conv, "Vote started for subject: " + vote_subject)
 
         # Cast a vote.
         elif set_vote is not None:
-            if event.user.full_name in voted.keys():
+            if UtilBot.can_user_vote(event.conv_id, event.user):
                 set_vote = set_vote.lower()
                 if set_vote == "true" or set_vote == "yes" or set_vote == "yea" or set_vote == "for" or set_vote == "yay" or set_vote == "aye":
-                    voted[event.user.full_name] = True
+                    UtilBot.set_vote(event.conv_id, event.user.full_name, True)
                 elif set_vote == "false" or set_vote == "no" or set_vote == "nay" or set_vote == "against":
-                    voted[event.user.full_name] = False
+                    UtilBot.set_vote(event.conv_id, event.user.full_name, True)
                 else:
                     bot.send_message(event.conv,
                                      "{}, you did not enter a valid vote parameter.".format(event.user.full_name))
                     return
-            true_count = list(voted.values()).count(True)
-            false_count = list(voted.values()).count(False)
-            total = len(voted.values())
-            if float(true_count) / float(total) > .5:
-                for key in voted.keys():
-                    voted[key] = True
-            elif float(false_count) / float(total) > .5:
-                for key in voted.keys():
-                    voted[key] = False
-            if not (None in voted.values()):
-                yeas = 0
-                nahs = 0
-                for set_vote in voted.values():
-                    if set_vote:
-                        yeas += 1
-                    else:
-                        nahs += 1
-                if yeas != nahs:
+
+            # Check if the vote has ended
+            vote_result = UtilBot.check_if_vote_finished(event.conv_id)
+            if vote_result is not None:
+                if vote_result != 0:
                     bot.send_message(event.conv,
-                                     'In the matter of: "' + vote_subject + '", the ' + (
-                                         'Yeas' if yeas > nahs else 'Nays') + ' have it.')
+                                     'In the matter of: "' + UtilBot.get_vote_subject(event.conv_id) + '", the ' + (
+                                         'Yeas' if vote_result > 0 else 'Nays') + ' have it.')
                 else:
-                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(vote_subject))
-                if vote_callback is not None:
-                    vote_callback(yeas > nahs)
-                vote_subject = None
-                voted = None
+                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
+                        UtilBot.get_vote_subject(event.conv_id)))
+            UtilBot.end_vote(event.conv_id, vote_result)
+            return
+
         # Check the status of a vote.
         else:
-            if vote_subject is not None:
-                segments = [hangups.ChatMessageSegment('Vote Status for "{}":'.format(vote_subject), is_bold=True),
-                            hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
-                for person in voted.keys():
-                    set_vote = voted[person]
-                    segments.append(hangups.ChatMessageSegment(
-                        person + " : " + ("For" if set_vote else "Not Voted" if set_vote is None else "Against")))
-                    segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
-                bot.send_message_segments(event.conv, segments)
+            if UtilBot.is_vote_started(event.conv_id):
+                status = UtilBot.get_vote_status(event.conv_id)
+                if len(status) > 1:
+                    bot.send_message_segments(event.conv, UtilBot.text_to_segments('\n'.join(status)))
+                else:
+                    bot.send_message(event.conv, "No vote currently started.")
             else:
                 bot.send_message(event.conv, "No vote currently started.")
+            return
