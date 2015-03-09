@@ -551,7 +551,7 @@ def vote(bot, event, set_vote=None, *args):
         bot.send_message_segments(event.conv, segments)
     else:
 
-        # Removes user from having to vote.
+        # Abstains user from voting.
         if set_vote is not None and set_vote.lower() == 'abstain':
             if UtilBot.is_vote_started(event.conv_id):
                 bot.send_message(event.conv, 'User {} has abstained from voting.'.format(event.user.full_name))
@@ -571,7 +571,7 @@ def vote(bot, event, set_vote=None, *args):
                 else:
                     bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
                         UtilBot.get_vote_subject(event.conv_id)))
-            UtilBot.end_vote(event.conv_id)
+                UtilBot.end_vote(event.conv_id)
             return
 
         # Cancels the vote
@@ -629,7 +629,7 @@ def vote(bot, event, set_vote=None, *args):
                 else:
                     bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
                         UtilBot.get_vote_subject(event.conv_id)))
-            UtilBot.end_vote(event.conv_id, vote_result)
+                UtilBot.end_vote(event.conv_id, vote_result)
             return
 
         # Check the status of a vote.
