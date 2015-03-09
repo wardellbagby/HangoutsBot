@@ -12,7 +12,136 @@ word_list = []
 for line in words:
     word_list.append(line.strip('\n'))
 word_list.sort()
+
+# Blocklist
 _blocklist = {}
+
+# For the /vote command.
+_vote_subject = {}
+_voted_tally = {}
+_vote_callbacks = {}
+
+
+def get_vote_subject(conv_id):
+    if conv_id in _vote_subject:
+        return _vote_subject[conv_id]
+    return None
+
+
+# userlist is a array of User objects, not an array of names.
+def init_new_vote(conv_id, userlist):
+    _voted_tally[conv_id] = {}
+    _vote_callbacks[conv_id] = None
+    for user in userlist:
+        if not user.is_self:
+            _voted_tally[conv_id][user.full_name] = None
+
+
+def set_vote_subject(conv_id, subject):
+    _vote_subject[conv_id] = subject.strip()
+
+
+def set_vote(conv_id, username, vote):
+    if conv_id not in _voted_tally:
+        _voted_tally[conv_id] = {}
+    _voted_tally[conv_id][username] = vote
+
+
+def abstain_voter(conv_id, username):
+    if username in _voted_tally[conv_id]:
+        del _voted_tally[conv_id][username]
+    if len(_voted_tally[conv_id]) == 0:
+        end_vote(conv_id)
+        return True
+
+
+def get_vote_status(conv_id):
+    results = ["**Vote Status for {}:**".format(get_vote_subject(conv_id))]
+    for person in _voted_tally[conv_id]:
+        results.append(person + ' : ' + str(get_vote(conv_id, person)))
+
+    return results
+
+
+def get_vote(conv_id, username):
+    if is_vote_started(conv_id):
+        try:
+            return _voted_tally[conv_id][username]
+        except KeyError:
+            return None
+
+
+def check_if_vote_finished(conv_id):
+    voted = _voted_tally[conv_id]
+    true_count = list(voted.values()).count(True)
+    false_count = list(voted.values()).count(False)
+    total = len(voted.values())
+    if total == 0:
+        return None
+    if float(true_count) / float(total) > .5:
+        for key in voted.keys():
+            voted[key] = True
+    elif float(false_count) / float(total) > .5:
+        for key in voted.keys():
+            voted[key] = False
+    if not (None in voted.values()):
+        yeas = 0
+        nahs = 0
+        for tallied_vote in voted.values():
+            if tallied_vote:
+                yeas += 1
+            else:
+                nahs += 1
+        return yeas - nahs
+    else:
+        return None
+
+
+def set_vote_callback(conv_id, callback):
+    _vote_callbacks[conv_id] = callback
+
+
+def can_user_vote(conv_id, user):
+    try:
+        is_voting = user.full_name in _voted_tally[conv_id]
+        try:
+            is_blocked = user.id_ not in _blocklist[conv_id]
+        except KeyError:
+            is_blocked = False  # For the case that the blocklist hasn't been init'd.
+
+        return is_voting and not is_blocked
+    except KeyError:
+        return False
+
+
+def is_vote_started(conv_id):
+    try:
+        return _vote_subject[conv_id] is not None and _voted_tally[conv_id] is not None
+    except KeyError:
+        return False
+
+
+def end_vote(conv_id, vote_result = False):
+    if vote_result and _vote_callbacks[conv_id] is not None:
+        _vote_callbacks[conv_id]()
+    del _voted_tally[conv_id]
+    _vote_subject[conv_id] = None
+    del _vote_callbacks[conv_id]
+
+
+def find_private_conversation(conv_list, user_id, default=None):
+    for conv_id in conv_list._conv_dict.keys():
+        current_conv = conv_list.get(conv_id)
+        if len(current_conv.users) == 2:
+
+            # Just in case the bot has a reference to a conversation it isn't actually in anymore.
+            if not (current_conv.users[0].is_self or current_conv.users[1].is_self):
+                continue
+
+            # Is the user in this conversation?
+            if user_id in [user.id_ for user in current_conv.users]:
+                return current_conv
+    return default
 
 
 def add_to_blocklist(conv_id, user_id):
@@ -311,6 +440,7 @@ def unhashtag(self, message):
     return to_return if to_return != [] else None
 
 
+# Uses basic markdown syntax for italics and bold.
 def text_to_segments(text):
     # Replace two consecutive spaces with space and non-breakable space,
     # then split text to lines
@@ -322,7 +452,14 @@ def text_to_segments(text):
     segments = []
     for line in lines[:-1]:
         if line:
-            segments.append(hangups.ChatMessageSegment(line))
+            if line[0:2] == '**' and line[-1:-3] == '**':
+                line = line[3:-3]
+                segments.append(hangups.ChatMessageSegment(line, is_italic=True))
+            elif line[0] == '*' and line[-1] == '*':
+                line = line[2:-2]
+                segments.append(hangups.ChatMessageSegment(line, is_bold=True))
+            else:
+                segments.append(hangups.ChatMessageSegment(line))
         segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
     if lines[-1]:
         segments.append(hangups.ChatMessageSegment(lines[-1]))
