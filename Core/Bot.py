@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 from datetime import date, datetime
+import os
 import sys
 import asyncio
 import time
@@ -221,12 +222,16 @@ class HangoutsBot(object):
             if event.conv_event.new_name == '':
                 text = "Name cleared"
                 directory = "Records" + "\\" + str(event.conv_id)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
                 filename = str(date.today()) + ".txt"
                 file = open(directory + '\\' + filename, "a+")
                 file.write(text + '\n')
             else:
                 text = "Name changed to: " + conv_event.new_name
                 directory = "Records" + "\\" + str(event.conv_id)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
                 filename = str(date.today()) + ".txt"
                 file = open(directory + '\\' + filename, "a+")
                 file.write(text + '\n')
