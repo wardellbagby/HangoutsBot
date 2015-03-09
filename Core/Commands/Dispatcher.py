@@ -13,6 +13,10 @@ To choose what happens when a command isn't found, register a function with @Dis
 that function will run whenever the Bot can't find a command that suits what the user entered.'''
 
 
+class NoCommandFoundError(Exception):
+    pass
+
+
 class CommandDispatcher(object):
     def __init__(self):
         self.commands = {}
@@ -39,7 +43,9 @@ class CommandDispatcher(object):
                 if self.unknown_command:
                     func = self.unknown_command
                 else:
-                    raise
+                    raise NoCommandFoundError(
+                        "Command {} is not registered. Furthermore, no command found to handle unknown commands.".format
+                        (command))
 
         func = asyncio.coroutine(func)
 

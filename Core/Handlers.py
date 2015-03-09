@@ -5,9 +5,10 @@ import re
 
 import hangups
 
-from Core.Commands import *  # Makes sure that all commands in the Command directory are imported and registered.
 
 from Core.Commands.Dispatcher import DispatcherSingleton
+from Core.Commands import *  # Makes sure that all commands in the Command directory are imported and registered.
+
 from Core.Util.UtilBot import is_user_blocked
 
 
@@ -17,6 +18,7 @@ class MessageHandler(object):
     def __init__(self, bot, command_char='/'):
         self.bot = bot
         self.command_char = command_char
+
 
     @staticmethod
     def word_in_text(word, text):
@@ -35,9 +37,12 @@ class MessageHandler(object):
             muted = not self.bot.config['conversations'][event.conv_id]['autoreplies_enabled']
         except KeyError:
             muted = False
-            from Core.Commands import DefaultCommands
-
-            DefaultCommands.unmute(self.bot, event)
+        try:
+            self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+        except KeyError:
+            self.bot.config['conversations'][event.conv_id] = {}
+            self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+            self.bot.config.save()
 
         event.text = event.text.replace('\xa0', ' ')
 
@@ -147,6 +152,7 @@ class MessageHandler(object):
                 for kw in kwds:
                     if self.word_in_text(kw, event.text) or kw == "*":
                         if sentence[0] == self.command_char:
+                            yield from self.bot._client.settyping(event.conv_id)
                             event.text = sentence.format(event.text)
                             yield from self.handle_command(event)
                         else:
