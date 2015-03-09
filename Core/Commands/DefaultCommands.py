@@ -560,6 +560,7 @@ def vote(bot, event, set_vote=None, *args):
                     return
             else:
                 bot.send_message(event.conv, 'No vote currently in process to abstain from.')
+                return
 
             # Check if the vote has ended
             vote_result = UtilBot.check_if_vote_finished(event.conv_id)
