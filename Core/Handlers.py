@@ -5,7 +5,6 @@ import re
 
 import hangups
 
-
 from Core.Commands.Dispatcher import DispatcherSingleton
 from Core.Commands import *  # Makes sure that all commands in the Command directory are imported and registered.
 
@@ -37,12 +36,12 @@ class MessageHandler(object):
             muted = not self.bot.config['conversations'][event.conv_id]['autoreplies_enabled']
         except KeyError:
             muted = False
-        try:
-            self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
-        except KeyError:
-            self.bot.config['conversations'][event.conv_id] = {}
-            self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
-            self.bot.config.save()
+            try:
+                self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+            except KeyError:
+                self.bot.config['conversations'][event.conv_id] = {}
+                self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+                self.bot.config.save()
 
         event.text = event.text.replace('\xa0', ' ')
 
