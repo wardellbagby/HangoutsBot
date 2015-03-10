@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from Core.Bot import HangoutsBot
@@ -26,17 +27,18 @@ base_config = '''{
   }
 }'''
 
+# TODO Factor in an arg parser.
 if __name__ == "__main__":
 
     # This commands auto updates the project. Please have Git installed and in your PATH variable on Windows.
     os.system("git pull")
     if os.path.isfile("config.json"):
-        HangoutsBot("cookies.txt", "config.json").run()
+        HangoutsBot("cookies.txt", "config.json", command_char='/').run()
     elif os.path.isfile("Core" + os.sep + "config.json"):
-        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json").run()
+        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json", command_char='/').run()
     else:
         print("Error finding config.json file. Creating default config file in at Core/config.json")
         config_file = open("Core" + os.sep + "config.json", 'w+')
         config_file.writelines(base_config)
         config_file.close()
-        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json").run()
+        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json", command_char='/').run()

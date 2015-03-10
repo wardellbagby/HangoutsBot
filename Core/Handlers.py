@@ -5,18 +5,19 @@ import re
 
 import hangups
 
-from Core.Commands import * # Makes sure that all commands in the Command directory are imported and registered.
-
 from Core.Commands.Dispatcher import DispatcherSingleton
+from Core.Commands import *  # Makes sure that all commands in the Command directory are imported and registered.
+
 from Core.Util.UtilBot import is_user_blocked
 
 
 class MessageHandler(object):
     """Handle Hangups conversation events"""
 
-    def __init__(self, bot, bot_command='/'):
+    def __init__(self, bot, command_char='/'):
         self.bot = bot
-        self.bot_command = bot_command
+        self.command_char = command_char
+
 
     @staticmethod
     def word_in_text(word, text):
@@ -31,15 +32,16 @@ class MessageHandler(object):
     def handle(self, event):
         if event.user.is_self or is_user_blocked(event.conv_id, event.user_id):
             return
-        if event.conv_id not in self.bot.conv_settings:
-            self.bot.conv_settings[event.conv_id] = {}
         try:
             muted = not self.bot.config['conversations'][event.conv_id]['autoreplies_enabled']
         except KeyError:
             muted = False
-            from Core.Commands import DefaultCommands
-
-            DefaultCommands.unmute(self.bot, event)
+            try:
+                self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+            except KeyError:
+                self.bot.config['conversations'][event.conv_id] = {}
+                self.bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+                self.bot.config.save()
 
         event.text = event.text.replace('\xa0', ' ')
 
@@ -48,10 +50,10 @@ class MessageHandler(object):
             event.print_debug()
 
         if not event.user.is_self and event.text:
-            if event.text.startswith(self.bot_command):
+            if event.text.startswith(self.command_char):
                 # Run command
-                if event.text[1] == '?':
-                    event.text = "/help"
+                if event.text[len(self.command_char)] == '?':
+                    event.text = "{}help".format(self.command_char)
                 yield from self.handle_command(event)
             else:
                 # Forward messages
@@ -77,7 +79,6 @@ class MessageHandler(object):
             else:
                 i += 1
 
-
         # Test if command length is sufficient
         if len(line_args) < 1:
             self.bot.send_message(event.conv,
@@ -88,7 +89,7 @@ class MessageHandler(object):
 
         has_permission = False
         commands_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_admin')
-        if commands_admin_list and line_args[0].lower().replace(self.bot_command, '') in commands_admin_list:
+        if commands_admin_list and line_args[0].lower().replace(self.command_char, '') in commands_admin_list:
             admins_list = self.bot.get_config_suboption(event.conv_id, 'admins')
             if admins_list is not None and event.user_id.chat_id in admins_list:
                 has_permission = True
@@ -97,7 +98,7 @@ class MessageHandler(object):
 
         if not has_permission:
             commands_conv_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
-            if commands_conv_admin_list and line_args[0].lower().replace(self.bot_command,
+            if commands_conv_admin_list and line_args[0].lower().replace(self.command_char,
                                                                          '') in commands_conv_admin_list:
                 conv_admin = self.bot.get_config_suboption(event.conv_id, 'conversation_admin')
                 if event.user_id.chat_id != conv_admin:
@@ -107,7 +108,7 @@ class MessageHandler(object):
                         return
 
         # Run command
-        yield from DispatcherSingleton.run(self.bot, event, *line_args[0:])
+        yield from DispatcherSingleton.run(self.bot, event, self.command_char, *line_args[0:])
 
     @asyncio.coroutine
     def handle_forward(self, event):
@@ -149,7 +150,8 @@ class MessageHandler(object):
             for kwds, sentence in autoreplies_list:
                 for kw in kwds:
                     if self.word_in_text(kw, event.text) or kw == "*":
-                        if sentence[0] == self.bot_command:
+                        if sentence[0] == self.command_char:
+                            yield from self.bot._client.settyping(event.conv_id)
                             event.text = sentence.format(event.text)
                             yield from self.handle_command(event)
                         else:

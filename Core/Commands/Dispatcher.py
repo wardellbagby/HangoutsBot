@@ -13,17 +13,25 @@ To choose what happens when a command isn't found, register a function with @Dis
 that function will run whenever the Bot can't find a command that suits what the user entered.'''
 
 
-class CommandDispatcher(object):
+class NoCommandFoundError(Exception):
+    pass
 
+
+class CommandDispatcher(object):
     def __init__(self):
         self.commands = {}
         self.hidden_commands = {}
         self.unknown_command = None
 
     @asyncio.coroutine
-    def run(self, bot, event, *args, **kwds):
-        if args[0].startswith('/'):
-            command = args[0][1:]
+    def run(self, bot, event, bot_command_char, *args, **kwds):
+
+        bot_command_char = bot_command_char.strip()  # For cases like "/bot " or " / "
+
+        if args[0] == bot_command_char:  # Either the command char is like "/bot" or the user did "/ ping"
+            args = list(args[1:])
+        if args[0].startswith(bot_command_char):
+            command = args[0][len(bot_command_char):]
         else:
             command = args[0]
         try:
@@ -35,7 +43,9 @@ class CommandDispatcher(object):
                 if self.unknown_command:
                     func = self.unknown_command
                 else:
-                    raise
+                    raise NoCommandFoundError(
+                        "Command {} is not registered. Furthermore, no command found to handle unknown commands.".format
+                        (command))
 
         func = asyncio.coroutine(func)
 
