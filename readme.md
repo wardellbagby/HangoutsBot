@@ -21,7 +21,7 @@ In order to use this, you'll need to setup a GMail account for logging in, and a
   "rename_watching_enabled": true,
   "conversations": {
     "CONV-ID-HERE": {
-      "conversation_admin": "USER-ID-HERE"
+      "conversation_admin": "USER-ID-HERE",
       "autoreplies": [
         [["whistle", "bot", "whistlebot"], "/think {}"],
         [["trash"], "You're trash"]
