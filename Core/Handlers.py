@@ -18,9 +18,7 @@ class MessageHandler(object):
         self.bot = bot
         self.command_char = command_char
 
-
-    @staticmethod
-    def word_in_text(word, text):
+    def word_in_text(self, word, text):
         """Return True if word is in text"""
         escaped = word.encode('unicode-escape').decode()
         if word != escaped:
@@ -86,29 +84,12 @@ class MessageHandler(object):
             return
 
         # Test if user has permissions for running command
-
-        has_permission = False
-        commands_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_admin')
-        if commands_admin_list and line_args[0].lower().replace(self.command_char, '') in commands_admin_list:
-            admins_list = self.bot.get_config_suboption(event.conv_id, 'admins')
-            if admins_list is not None and event.user_id.chat_id in admins_list:
-                has_permission = True
-            else:
-                has_permission = False
-
-        if not has_permission:
-            commands_conv_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
-            if commands_conv_admin_list and line_args[0].lower().replace(self.command_char,
-                                                                         '') in commands_conv_admin_list:
-                conv_admin = self.bot.get_config_suboption(event.conv_id, 'conversation_admin')
-                if event.user_id.chat_id != conv_admin:
-                    if not self.bot.dev:
-                        self.bot.send_message(event.conv,
-                                              "Sorry {}, I can't let you do that.".format(event.user.full_name))
-                        return
-
-        # Run command
-        yield from DispatcherSingleton.run(self.bot, event, self.command_char, *line_args[0:])
+        if self._check_if_can_run_command(event, line_args[0].lower().replace(self.command_char, '')):
+            # Run command
+            yield from DispatcherSingleton.run(self.bot, event, self.command_char, *line_args[0:])
+        else:
+            self.bot.send_message(event.conv,
+                                  "Sorry {}, I can't let you do that.".format(event.user.full_name))
 
     @asyncio.coroutine
     def handle_forward(self, event):
@@ -157,3 +138,21 @@ class MessageHandler(object):
                         else:
                             self.bot.send_message(event.conv, sentence)
                         break
+
+    def _check_if_can_run_command(self, event, command):
+        commands_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_admin')
+        commands_conv_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
+        admins_list = self.bot.get_config_suboption(event.conv_id, 'admins')
+        conv_admin = self.bot.get_config_suboption(event.conv_id, 'conversation_admin')
+
+        # Check if this is a conversation admin command.
+        if commands_conv_admin_list and command in commands_conv_admin_list:
+            if (admins_list and event.user_id[0] not in admins_list) and (
+                        not conv_admin or (event.user_id[0] not in conv_admin)):
+                return False
+
+        # Check if this is a admin-only command.
+        if commands_admin_list and command in commands_admin_list:
+            if not admins_list or event.user_id[0] not in admins_list:
+                return False
+        return True
