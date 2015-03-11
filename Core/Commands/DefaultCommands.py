@@ -625,18 +625,21 @@ def vote(bot, event, set_vote=None, *args):
                                      "{}, you did not enter a valid vote parameter.".format(event.user.full_name))
                     return
 
-            # Check if the vote has ended
-            vote_result = UtilBot.check_if_vote_finished(event.conv_id)
-            if vote_result is not None:
-                if vote_result != 0:
-                    bot.send_message(event.conv,
-                                     'In the matter of: "' + UtilBot.get_vote_subject(event.conv_id) + '", the ' + (
-                                         'Yeas' if vote_result > 0 else 'Nays') + ' have it.')
-                else:
-                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
-                        UtilBot.get_vote_subject(event.conv_id)))
-                UtilBot.end_vote(event.conv_id, vote_result)
-            return
+                # Check if the vote has ended
+                vote_result = UtilBot.check_if_vote_finished(event.conv_id)
+                if vote_result is not None:
+                    if vote_result != 0:
+                        bot.send_message(event.conv,
+                                         'In the matter of: "' + UtilBot.get_vote_subject(event.conv_id) + '", the ' + (
+                                             'Yeas' if vote_result > 0 else 'Nays') + ' have it.')
+                    else:
+                        bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
+                            UtilBot.get_vote_subject(event.conv_id)))
+                    UtilBot.end_vote(event.conv_id, vote_result)
+                return
+            else:
+                bot.send_message(event.conv_id, 'User {} is not allowed to vote.'.format(event.user.full_name))
+                return
 
         # Check the status of a vote.
         else:
