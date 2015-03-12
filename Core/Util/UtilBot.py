@@ -105,7 +105,7 @@ def can_user_vote(conv_id, user):
     try:
         is_voting = user.full_name in _voted_tally[conv_id]
         try:
-            is_blocked = user.id_ not in _blocklist[conv_id]
+            is_blocked = user.id_ in _blocklist[conv_id]
         except KeyError:
             is_blocked = False  # For the case that the blocklist hasn't been init'd.
 

@@ -587,6 +587,9 @@ def vote(bot, event, set_vote=None, *args):
         # Starts a new vote
         if not UtilBot.is_vote_started(event.conv_id) and set_vote is not None:
             vote_subject = set_vote + ' ' + ' '.join(args)
+            vote_callback = None
+
+            # TODO Refactor this into a more easily extensible system.
             if vote_subject.lower().strip() == "admin":  # For the special Conversation Admin case.
 
                 vote_subject = '{} for Conversation Admin for chat {}'.format(event.user.full_name,
@@ -601,10 +604,12 @@ def vote(bot, event, set_vote=None, *args):
                             bot.config["conversations"][event.conv_id]["admin"] = event.user.id_[0]
                         bot.config.save()
 
-                UtilBot.set_vote_callback(event.conv_id, set_conv_admin)
+                vote_callback = set_conv_admin
 
             UtilBot.set_vote_subject(event.conv_id, vote_subject)
             UtilBot.init_new_vote(event.conv_id, event.conv.users)
+            if vote_callback is not None:
+                UtilBot.set_vote_callback(event.conv_id, vote_callback)
             bot.send_message(event.conv, "Vote started for subject: " + vote_subject)
 
         # Cast a vote.
@@ -620,18 +625,21 @@ def vote(bot, event, set_vote=None, *args):
                                      "{}, you did not enter a valid vote parameter.".format(event.user.full_name))
                     return
 
-            # Check if the vote has ended
-            vote_result = UtilBot.check_if_vote_finished(event.conv_id)
-            if vote_result is not None:
-                if vote_result != 0:
-                    bot.send_message(event.conv,
-                                     'In the matter of: "' + UtilBot.get_vote_subject(event.conv_id) + '", the ' + (
-                                         'Yeas' if vote_result > 0 else 'Nays') + ' have it.')
-                else:
-                    bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
-                        UtilBot.get_vote_subject(event.conv_id)))
-                UtilBot.end_vote(event.conv_id, vote_result)
-            return
+                # Check if the vote has ended
+                vote_result = UtilBot.check_if_vote_finished(event.conv_id)
+                if vote_result is not None:
+                    if vote_result != 0:
+                        bot.send_message(event.conv,
+                                         'In the matter of: "' + UtilBot.get_vote_subject(event.conv_id) + '", the ' + (
+                                             'Yeas' if vote_result > 0 else 'Nays') + ' have it.')
+                    else:
+                        bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
+                            UtilBot.get_vote_subject(event.conv_id)))
+                    UtilBot.end_vote(event.conv_id, vote_result)
+                return
+            else:
+                bot.send_message(event.conv_id, 'User {} is not allowed to vote.'.format(event.user.full_name))
+                return
 
         # Check the status of a vote.
         else:
