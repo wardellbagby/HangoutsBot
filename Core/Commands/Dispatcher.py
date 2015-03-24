@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from Core.Util import UtilBot
 import traceback
 
 ''' To use this, either add on to the ExtraCommands.py file or create your own Python file. Import the DispatcherSingleton
@@ -51,8 +52,14 @@ class CommandDispatcher(object):
 
         args = list(args[1:])
 
+        # For help cases.
+        if len(args) > 0 and args[0] == '?':
+            if func.__doc__:
+                bot.send_message_segments(event.conv, UtilBot.text_to_segments(func.__doc__))
+                return
+
         try:
-            yield from func(bot, event, *args, **kwds)
+            asyncio.async(func(bot, event, *args, **kwds))
         except Exception as e:
             log = open('log.txt', 'a+')
             log.writelines(str(datetime.now()) + ":\n " + traceback.format_exc() + "\n\n")

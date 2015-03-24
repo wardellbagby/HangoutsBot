@@ -22,6 +22,48 @@ _voted_tally = {}
 _vote_callbacks = {}
 
 
+def is_user_conv_admin(bot, user_info, conv_id=None):
+    if isinstance(user_info, hangups.ConversationEvent):
+        user_id = user_info.user_id
+        conv_id = user_info.conversation_id
+    elif isinstance(user_info, str):
+        user_id = user_info
+    elif isinstance(user_info, hangups.user.User):
+        user_id = user_info.user_id[0]
+    elif isinstance(user_info, hangups.user.UserID):
+        user_id = user_info[0]
+
+    if conv_id is None:
+        raise ValueError("conv_id can not be None.")
+
+    if user_id is None:
+        raise ValueError("user_info can not be null")
+
+    conv_admin_list = bot.get_config_suboption(conv_id, 'conversation_admin')
+    return conv_admin_list and user_id in conv_admin_list
+
+
+def is_user_admin(bot, user_info, conv_id=None):
+    if isinstance(user_info, hangups.ConversationEvent):
+        user_id = user_info.user_id
+        conv_id = user_info.conversation_id
+    elif isinstance(user_info, str):
+        user_id = user_info
+    elif isinstance(user_info, hangups.user.User):
+        user_id = user_info.user_id[0]
+    elif isinstance(user_info, hangups.user.UserID):
+        user_id = user_info[0]
+
+    if conv_id is None:
+        raise ValueError("conv_id can not be None.")
+
+    if user_id is None:
+        raise ValueError("user_info does not contain valid User information.")
+
+    admins_list = bot.get_config_suboption(conv_id, 'admins')
+    return admins_list and user_id in admins_list
+
+
 def get_vote_subject(conv_id):
     if conv_id in _vote_subject:
         return _vote_subject[conv_id]
@@ -121,7 +163,7 @@ def is_vote_started(conv_id):
         return False
 
 
-def end_vote(conv_id, vote_result = False):
+def end_vote(conv_id, vote_result=False):
     if vote_result and _vote_callbacks[conv_id] is not None:
         _vote_callbacks[conv_id]()
     del _voted_tally[conv_id]
@@ -442,25 +484,26 @@ def unhashtag(self, message):
 
 # Uses basic markdown syntax for italics and bold.
 def text_to_segments(text):
-    # Replace two consecutive spaces with space and non-breakable space,
-    # then split text to lines
-    lines = text.replace('  ', ' \xa0').splitlines()
-    if not lines:
+    if not text:
         return []
+
+    # Replace two consecutive spaces with space and non-breakable space, strip of leading/trailing spaces,
+    # then split text to lines
+    lines = [x.strip() for x in text.replace('  ', ' \xa0').splitlines()]
 
     # Generate line segments
     segments = []
     for line in lines[:-1]:
         if line:
-            if line[0:2] == '**' and line[-1:-3] == '**':
-                line = line[3:-3]
+            if line[:2] == '**' and line[-2:] == '**':
+                line = line[2:-2]
                 segments.append(hangups.ChatMessageSegment(line, is_italic=True))
             elif line[0] == '*' and line[-1] == '*':
-                line = line[2:-2]
+                line = line[1:-1]
                 segments.append(hangups.ChatMessageSegment(line, is_bold=True))
             else:
                 segments.append(hangups.ChatMessageSegment(line))
-        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
     if lines[-1]:
         segments.append(hangups.ChatMessageSegment(lines[-1]))
 
