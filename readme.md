@@ -84,7 +84,7 @@ def command(bot, event, *args):
     # Do actual functionality here.
 ```  
 
-The docstring isn't necessary, but should be used as it will be printed out if a user uses "/help <command name>" or does "/<command_name> ?". Admin-only commands generally don't have help text by default, but that's left up to your discretion.
+The docstring isn't necessary, but should be used as it will be printed out if a user uses "/help \<command name\>" or does "/\<command_name\> ?". Admin-only commands generally don't have help text by default, but that's left up to your discretion.
    
 The bot variable is a reference to the HangoutsBot that is currently running. The event variable is a ConversationEvent that has information about the event (as in, text, the user who sent it, the conversation, and all users in the conversation.) The \*args variable is a tuple of all of the text sent along with the command call, split by whitespace so that you can easily check its values. Look at the DefaultCommands.py file for actual examples of how commands work.  
   
