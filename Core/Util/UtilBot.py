@@ -7,6 +7,7 @@ import hangups
 
 __author__ = 'wardellchandler'
 
+# TODO I think this is a relic of Bots Past. Check into whether it's needed.
 words = open("Core" + os.sep + "Util" + os.sep + "wordlist.txt")
 word_list = []
 for line in words:
@@ -20,6 +21,10 @@ _blocklist = {}
 _vote_subject = {}
 _voted_tally = {}
 _vote_callbacks = {}
+
+# For the /record command
+_last_recorder = {}
+_last_recorded = {}
 
 
 def is_user_conv_admin(bot, user_info, conv_id=None):
@@ -539,3 +544,21 @@ def text_to_segments(text):
         segments.append(hangups.ChatMessageSegment(lines[-1]))
 
     return segments
+
+
+def get_last_recorder(conv_id):
+    if conv_id in _last_recorder:
+        return _last_recorder[conv_id]
+
+
+def get_last_recorded(conv_id):
+    if conv_id in _last_recorded:
+        return _last_recorded[conv_id]
+
+
+def set_last_recorder(conv_id, last_recorder):
+    _last_recorder[conv_id] = last_recorder
+
+
+def set_last_recorded(conv_id, last_recorded):
+    _last_recorded[conv_id] = last_recorded
