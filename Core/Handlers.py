@@ -8,7 +8,7 @@ import hangups
 from Core.Commands.Dispatcher import DispatcherSingleton
 from Core.Commands import *  # Makes sure that all commands in the Command directory are imported and registered.
 
-from Core.Util.UtilBot import is_user_blocked
+from Core.Util.UtilBot import is_user_blocked, check_if_can_run_command
 
 
 class MessageHandler(object):
@@ -84,7 +84,7 @@ class MessageHandler(object):
             return
 
         # Test if user has permissions for running command
-        if self._check_if_can_run_command(event, line_args[0].lower().replace(self.command_char, '')):
+        if check_if_can_run_command(self.bot, event, line_args[0].lower().replace(self.command_char, '')):
             # Run command
             yield from DispatcherSingleton.run(self.bot, event, self.command_char, *line_args[0:])
         else:
@@ -138,21 +138,3 @@ class MessageHandler(object):
                         else:
                             self.bot.send_message(event.conv, sentence)
                         break
-
-    def _check_if_can_run_command(self, event, command):
-        commands_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_admin')
-        commands_conv_admin_list = self.bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
-        admins_list = self.bot.get_config_suboption(event.conv_id, 'admins')
-        conv_admin = self.bot.get_config_suboption(event.conv_id, 'conversation_admin')
-
-        # Check if this is a conversation admin command.
-        if commands_conv_admin_list and command in commands_conv_admin_list:
-            if (admins_list and event.user_id[0] not in admins_list) and (
-                        not conv_admin or (event.user_id[0] not in conv_admin)):
-                return False
-
-        # Check if this is a admin-only command.
-        if commands_admin_list and command in commands_admin_list:
-            if not admins_list or event.user_id[0] not in admins_list:
-                return False
-        return True
