@@ -30,11 +30,15 @@ def think(bot, event, *args):
 
 @DispatcherSingleton.register
 def help(bot, event, command=None, *args):
+    valid_user_commands = []
+    for command_test in sorted(DispatcherSingleton.commands.keys()):
+        if UtilBot.check_if_can_run_command(bot, event, command_test):
+            valid_user_commands.append(command_test)
     docstring = """
     *Current Implemented Commands:*
     {}
     Use: /<command name> ? or /help <command name> to find more information about the command.
-    """.format(', '.join(sorted(DispatcherSingleton.commands.keys())))
+    """.format(', '.join(valid_user_commands))
     if command == '?' or command is None:
         bot.send_message_segments(event.conv, UtilBot.text_to_segments(docstring))
     else:

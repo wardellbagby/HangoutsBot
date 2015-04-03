@@ -64,6 +64,25 @@ def is_user_admin(bot, user_info, conv_id=None):
     return admins_list and user_id in admins_list
 
 
+def check_if_can_run_command(bot, event, command):
+    commands_admin_list = bot.get_config_suboption(event.conv_id, 'commands_admin')
+    commands_conv_admin_list = bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
+    admins_list = bot.get_config_suboption(event.conv_id, 'admins')
+    conv_admin = bot.get_config_suboption(event.conv_id, 'conversation_admin')
+
+    # Check if this is a conversation admin command.
+    if commands_conv_admin_list and command in commands_conv_admin_list:
+        if (admins_list and event.user_id[0] not in admins_list) and (
+                    not conv_admin or (event.user_id[0] not in conv_admin)):
+            return False
+
+    # Check if this is a admin-only command.
+    if commands_admin_list and command in commands_admin_list:
+        if not admins_list or event.user_id[0] not in admins_list:
+            return False
+    return True
+    
+
 def get_vote_subject(conv_id):
     if conv_id in _vote_subject:
         return _vote_subject[conv_id]
