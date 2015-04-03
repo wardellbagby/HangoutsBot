@@ -44,6 +44,7 @@ def is_user_conv_admin(bot, user_info, conv_id=None):
 
 
 def is_user_admin(bot, user_info, conv_id=None):
+    user_id = None
     if isinstance(user_info, hangups.ConversationEvent):
         user_id = user_info.user_id
         conv_id = user_info.conversation_id
@@ -90,9 +91,7 @@ def check_if_can_run_command(bot, event, command, subcommand=None):
                                 or (subcommand and (command + ' *') in commands_admin_list)):
 
         if not admins_list or event.user_id[0] not in admins_list:
-            print("Command %s is not allowed for %s" % (full_command, event.user.full_name))
             return False
-    print("Command %s is allowed for %s" % (full_command, event.user.full_name))
     return True
 
 
@@ -529,10 +528,10 @@ def text_to_segments(text):
         if line:
             if line[:2] == '**' and line[-2:] == '**':
                 line = line[2:-2]
-                segments.append(hangups.ChatMessageSegment(line, is_italic=True))
+                segments.append(hangups.ChatMessageSegment(line, is_bold=True))
             elif line[0] == '*' and line[-1] == '*':
                 line = line[1:-1]
-                segments.append(hangups.ChatMessageSegment(line, is_bold=True))
+                segments.append(hangups.ChatMessageSegment(line, is_italic=True))
             else:
                 segments.append(hangups.ChatMessageSegment(line))
             segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))

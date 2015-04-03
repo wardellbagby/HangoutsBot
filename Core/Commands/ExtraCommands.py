@@ -83,7 +83,7 @@ def udefine(bot, event, *args):
 def remind(bot, event, *args):
     # TODO Implement a private chat feature. Have reminders save across reboots?
     """
-    *Remind:*
+    **Remind:**
     Usage: /remind <optional: date [defaults to today]> <optional: time [defaults to an hour from now]> <message> {/remind 1/1/15 2:00PM Call mom}
     Usage: /remind
     Usage /remind delete <index to delete> {/remind delete 1}
