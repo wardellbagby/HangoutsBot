@@ -82,106 +82,96 @@ def udefine(bot, event, *args):
 @DispatcherSingleton.register
 def remind(bot, event, *args):
     # TODO Implement a private chat feature. Have reminders save across reboots?
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Remind', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+    """
+    *Remind:*
+    Usage: /remind <optional: date [defaults to today]> <optional: time [defaults to an hour from now]> <message> {/remind 1/1/15 2:00PM Call mom}
+    Usage: /remind
+    Usage /remind delete <index to delete> {/remind delete 1}
+    Purpose: Will post a message on the date and time specified to the current chat. With no arguments, it'll list all the reminders."""
+    if len(args) == 0:
+        segments = [hangups.ChatMessageSegment('Reminders:', is_bold=True),
+                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+        if len(reminders) > 0:
+            for x in range(0, len(reminders)):
+                reminder = reminders[x]
+                reminder_timer = reminder[0]
+                reminder_text = reminder[1]
+                date_to_post = datetime.now() + timedelta(seconds=reminder_timer.interval)
+                segments.append(
                     hangups.ChatMessageSegment(
-                        'Usage: /remind <optional: date [defaults to today]> <optional: time [defaults to an hour from now]> Message'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Usage: /remind'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Usage: /remind delete <index to delete>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Purpose: Will post a message the date and time specified to the current chat. With no arguments, it\'ll list all the reminders.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        if len(args) == 0:
-            segments = [hangups.ChatMessageSegment('Reminders:', is_bold=True),
-                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-            if len(reminders) > 0:
-                for x in range(0, len(reminders)):
-                    reminder = reminders[x]
-                    reminder_timer = reminder[0]
-                    reminder_text = reminder[1]
-                    date_to_post = datetime.now() + timedelta(seconds=reminder_timer.interval)
-                    segments.append(
-                        hangups.ChatMessageSegment(
-                            str(x + 1) + ' - ' + date_to_post.strftime('%m/%d/%y %I:%M%p') + ' : ' + reminder_text))
-                    segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-                segments.pop()
-                bot.send_message_segments(event.conv, segments)
-            else:
-                bot.send_message(event.conv, "No reminders are currently set.")
-            return
-        if args[0] == 'delete':
-            try:
-                x = int(args[1])
-                x -= 1
-            except ValueError:
-                bot.send_message(event.conv, 'Invalid integer: ' + args[1])
-                return
-            if x in range(0, len(reminders)):
-                reminder_to_remove_text = reminders[x][1]
-                reminders[x][0].cancel()
-                reminders.remove(reminders[x])
-                bot.send_message(event.conv, 'Removed reminder: ' + reminder_to_remove_text)
-            else:
-                bot.send_message(event.conv, 'Invalid integer: ' + str(x + 1))
-            return
-
-        def send_reminder(bot, conv, reminder_time, reminder_text, loop):
-            asyncio.set_event_loop(loop)
-            bot.send_message(conv, reminder_text)
-            for reminder in reminders:
-                if reminder[0].interval == reminder_time and reminder[1] == reminder_text:
-                    reminders.remove(reminder)
-
-        args = list(args)
-        date = str(datetime.now().today().date())
-        time = str((datetime.now() + timedelta(hours=1)).time())
-        set_date = False
-        set_time = False
-        index = 0
-        while index < len(args):
-            item = args[index]
-            if item[0].isnumeric():
-                if '/' in item or '-' in item:
-                    date = item
-                    args.remove(date)
-                    set_date = True
-                    index -= 1
-                else:
-                    time = item
-                    args.remove(time)
-                    set_time = True
-                    index -= 1
-            if set_date and set_time:
-                break
-            index += 1
-
-        reminder_time = date + ' ' + time
-        if len(args) > 0:
-            reminder_text = ' '.join(args)
+                        str(x + 1) + ' - ' + date_to_post.strftime('%m/%d/%y %I:%M%p') + ' : ' + reminder_text))
+                segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            segments.pop()
+            bot.send_message_segments(event.conv, segments)
         else:
-            bot.send_message(event.conv, 'No reminder text set.')
-            return
-        current_time = datetime.now()
+            bot.send_message(event.conv, "No reminders are currently set.")
+        return
+    if args[0] == 'delete':
         try:
-            reminder_time = parser.parse(reminder_time)
-        except (ValueError, TypeError):
-            bot.send_message(event.conv, "Couldn't parse " + reminder_time + " as a valid date.")
+            x = int(args[1])
+            x -= 1
+        except ValueError:
+            bot.send_message(event.conv, 'Invalid integer: ' + args[1])
             return
-        if reminder_time < current_time:
-            reminder_time = current_time + timedelta(hours=1)
-        reminder_interval = (reminder_time - current_time).seconds
-        reminder_timer = threading.Timer(reminder_interval, send_reminder,
-                                         [bot, event.conv, reminder_interval, reminder_text, asyncio.get_event_loop()])
-        reminders.append((reminder_timer, reminder_text))
-        reminder_timer.start()
-        bot.send_message(event.conv, "Reminder set for " + reminder_time.strftime('%B %d, %Y %I:%M%p'))
+        if x in range(0, len(reminders)):
+            reminder_to_remove_text = reminders[x][1]
+            reminders[x][0].cancel()
+            reminders.remove(reminders[x])
+            bot.send_message(event.conv, 'Removed reminder: ' + reminder_to_remove_text)
+        else:
+            bot.send_message(event.conv, 'Invalid integer: ' + str(x + 1))
+        return
+
+    def send_reminder(bot, conv, reminder_time, reminder_text, loop):
+        asyncio.set_event_loop(loop)
+        bot.send_message(conv, reminder_text)
+        for reminder in reminders:
+            if reminder[0].interval == reminder_time and reminder[1] == reminder_text:
+                reminders.remove(reminder)
+
+    args = list(args)
+    date = str(datetime.now().today().date())
+    time = str((datetime.now() + timedelta(hours=1)).time())
+    set_date = False
+    set_time = False
+    index = 0
+    while index < len(args):
+        item = args[index]
+        if item[0].isnumeric():
+            if '/' in item or '-' in item:
+                date = item
+                args.remove(date)
+                set_date = True
+                index -= 1
+            else:
+                time = item
+                args.remove(time)
+                set_time = True
+                index -= 1
+        if set_date and set_time:
+            break
+        index += 1
+
+    reminder_time = date + ' ' + time
+    if len(args) > 0:
+        reminder_text = ' '.join(args)
+    else:
+        bot.send_message(event.conv, 'No reminder text set.')
+        return
+    current_time = datetime.now()
+    try:
+        reminder_time = parser.parse(reminder_time)
+    except (ValueError, TypeError):
+        bot.send_message(event.conv, "Couldn't parse " + reminder_time + " as a valid date.")
+        return
+    if reminder_time < current_time:
+        reminder_time = current_time + timedelta(hours=1)
+    reminder_interval = (reminder_time - current_time).seconds
+    reminder_timer = threading.Timer(reminder_interval, send_reminder,
+                                     [bot, event.conv, reminder_interval, reminder_text, asyncio.get_event_loop()])
+    reminders.append((reminder_timer, reminder_text))
+    reminder_timer.start()
+    bot.send_message(event.conv, "Reminder set for " + reminder_time.strftime('%B %d, %Y %I:%M%p'))
 
 
 @DispatcherSingleton.register

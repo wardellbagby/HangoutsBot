@@ -78,7 +78,7 @@ Any function created in the ExtraCommands.py file (or any .py file that imports 
 @DispatcherSingleton.register
 def command(bot, event, *args):
     """Command
-    Usage: /command <required argument> <optional: optional argument>
+    Usage: /command <required argument> <optional: optional argument> {for complicated commands, put an example call in curly braces}
     Purpose: Does a thing."""
     
     # Do actual functionality here.
