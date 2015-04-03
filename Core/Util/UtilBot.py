@@ -64,24 +64,37 @@ def is_user_admin(bot, user_info, conv_id=None):
     return admins_list and user_id in admins_list
 
 
-def check_if_can_run_command(bot, event, command):
+def check_if_can_run_command(bot, event, command, subcommand=None):
     commands_admin_list = bot.get_config_suboption(event.conv_id, 'commands_admin')
     commands_conv_admin_list = bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
     admins_list = bot.get_config_suboption(event.conv_id, 'admins')
     conv_admin = bot.get_config_suboption(event.conv_id, 'conversation_admin')
 
+    # We want to check for subcommands, too. If a command is blocked, its subcommands aren't blocked.
+    if subcommand is not None:
+        full_command = command + ' %s' % subcommand
+    else:
+        full_command = command
+
     # Check if this is a conversation admin command.
-    if commands_conv_admin_list and command in commands_conv_admin_list:
-        if (admins_list and event.user_id[0] not in admins_list) and (
-                    not conv_admin or (event.user_id[0] not in conv_admin)):
+    if commands_conv_admin_list and (full_command in commands_conv_admin_list
+                                     or (subcommand and (command + ' *') in commands_conv_admin_list)):
+
+        if (admins_list and event.user_id[0] not in admins_list) \
+                and (not conv_admin or (event.user_id[0] not in conv_admin)):
+            print("Command %s is not allowed for %s" % (full_command, event.user.full_name))
             return False
 
     # Check if this is a admin-only command.
-    if commands_admin_list and command in commands_admin_list:
+    if commands_admin_list and (full_command in commands_admin_list
+                                or (subcommand and (command + ' *') in commands_admin_list)):
+
         if not admins_list or event.user_id[0] not in admins_list:
+            print("Command %s is not allowed for %s" % (full_command, event.user.full_name))
             return False
+    print("Command %s is allowed for %s" % (full_command, event.user.full_name))
     return True
-    
+
 
 def get_vote_subject(conv_id):
     if conv_id in _vote_subject:

@@ -25,7 +25,7 @@ base_config = '''{
     [["bot", "robot", "Yo"], "/think {}"]
   ],
   "development_mode": false,
-  "commands_admin": ["hangouts", "reload", "quit", "config", "block"],
+  "commands_admin": ["hangouts", "reload", "quit", "config", "block", "record clear"],
   "commands_conversation_admin": ["leave", "echo", "block"]
   "commands_enabled": true,
   "forwarding_enabled": false,

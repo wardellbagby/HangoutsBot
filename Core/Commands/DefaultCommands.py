@@ -270,14 +270,14 @@ def user(bot, event, username, *args):
     """
     *User:*
     Usage: /user <user name>
-    Purpose: Lists information about the specified user.
+    Purpose: Lists information about the specified user in the current chat.
     """
     username_lower = username.strip().lower()
     segments = [hangups.ChatMessageSegment('User: "{}":'.format(username),
                                            is_bold=True),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
-    for u in sorted(bot._user_list._user_dict.values(), key=lambda x: x.full_name.split()[-1]):
-        if not username_lower in u.full_name.lower():
+    for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
+        if username_lower not in u.full_name.lower():
             continue
 
         link = 'https://plus.google.com/u/0/{}/about'.format(u.id_.chat_id)
@@ -290,7 +290,10 @@ def user(bot, event, username, *args):
             segments.append(hangups.ChatMessageSegment(')'))
         segments.append(hangups.ChatMessageSegment(' ... {}'.format(u.id_.chat_id)))
         segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-    bot.send_message_segments(event.conv, segments)
+    if len(segments) > 2:
+        bot.send_message_segments(event.conv, segments)
+    else:
+        bot.send_message(event.conv, 'No user "%s" in current conversation.' % username)
 
 
 @DispatcherSingleton.register
