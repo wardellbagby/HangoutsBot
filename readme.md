@@ -4,7 +4,7 @@ HangoutsBot
 Setup
 --------------
 
-In order to use this, you'll need to setup a GMail account for logging in, and a config.json file to give the bot its settings. The config file should look like:
+In order to use this, you'll need to setup a GMail account for logging in, and a config.json file (placed either at the folder root or in the Core folder) to give the bot its settings. The config file should look something like:
 
 ```JSON
 {
@@ -14,7 +14,7 @@ In order to use this, you'll need to setup a GMail account for logging in, and a
     [["bot", "robot", "Yo"], "/think {}"]
   ],
   "development_mode": false,
-  "commands_admin": ["hangouts", "reload", "quit", "restart", "config", "restart", "block"],
+  "commands_admin": ["hangouts", "reload", "quit", "config", "block"],
   "commands_conversation_admin": ["leave", "echo", "block"],
   "commands_enabled": true,
   "forwarding_enabled": false,
@@ -32,7 +32,9 @@ In order to use this, you'll need to setup a GMail account for logging in, and a
     }
   }
 }
-```
+```  
+
+If you neglect to create a config.json file, this exact one will be created for you in the Core folder.  
 
 Line by Line breakdown (excluding braces/brackets):  
   
@@ -54,6 +56,8 @@ Line by Line breakdown (excluding braces/brackets):
 16. Start of the "forward_to" array. All conversation IDs listed here will have this conversation forwarded to them.  
 17. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx", and then commands will be forwarded to that conversation.  
 
+Note: Every top-level argument can be made a conversation level argument, which will overwrite the top level argument for that conversation. For instance, if you put a commands_admin array containing only "quit" and "block" in "CONV-ID-HERE", in the CONV-ID-HERE conversation, all users would be able to run /hangouts, /reload, /config, etc but would still be blocked from running /quit and /block. Conversely, if you put an empty commands_admin array in CONV-ID-HERE, all users in that conversation would be able to run all commands (except any commands in the "commands_conversation_admin" array unless they're a conversation admin.)  
+
 A cookies.txt file will also be created, holding the cookies that are valid for your login.  
   
 Usage
@@ -72,19 +76,20 @@ Any function created in the ExtraCommands.py file (or any .py file that imports 
 
 ```python  
 @DispatcherSingleton.register
-def function_for_bot(bot, event, *args):
-     if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('New Function For Bot', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /function_for_bot <required argument> <optional: optional argument>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Does a thing.')]
-        bot.send_message_segments(event.conv, segments)
-     else:
-        # Do actual functionality here.
+def command(bot, event, *args):
+    """Command
+    Usage: /command <required argument> <optional: optional argument> {for complicated commands, put an example call in curly braces}
+    Purpose: Does a thing."""
+    
+    # Do actual functionality here.
 ```  
 
-It should be frowned upon to force a user to put underscores in to use a command, but that's up to you to decide.  
+The docstring isn't necessary, but should be used as it will be printed out if a user uses "/help \<command name\>" or does "/\<command_name\> ?". Admin-only commands generally don't have help text by default, but that's left up to your discretion.
+   
+The bot variable is a reference to the HangoutsBot that is currently running. The event variable is a ConversationEvent that has information about the event (as in, text, the user who sent it, the conversation, and all users in the conversation.) The \*args variable is a tuple of all of the text sent along with the command call, split by whitespace so that you can easily check its values. Look at the DefaultCommands.py file for actual examples of how commands work.  
+  
+It should be frowned upon to force a user to put underscores in to use a command, but that's up to you to decide.
+  
   
   
 Have fun botting!
