@@ -1,6 +1,8 @@
 HangoutsBot
 ==============
 
+Before you get started, I highly recommend you take a look at [xmikos's Hangupsbot](https://github.com/xmikos/hangupsbot) from which this is a fork of. 
+
 Setup
 --------------
 
