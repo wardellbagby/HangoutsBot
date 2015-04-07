@@ -84,8 +84,7 @@ class MessageHandler(object):
             return
 
         # Test if user has permissions for running command (and subcommand)
-        if check_if_can_run_command(self.bot, event, line_args[0].lower().replace(self.command_char, ''),
-                                    line_args[1].lower() if len(line_args) > 1 else None):
+        if check_if_can_run_command(self.bot, event, line_args[0].lower().replace(self.command_char, '')):
             # Run command
             yield from DispatcherSingleton.run(self.bot, event, self.command_char, *line_args[0:])
         else:
