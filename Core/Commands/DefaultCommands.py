@@ -510,6 +510,10 @@ def block(bot, event, username=None, *args):
         if not username_lower in u.full_name.lower() or event.user.is_self:
             continue
 
+        if u.id_ == event.user.id_:
+            bot.send_message(event.conv, "Aborting block as it would block calling user. ({})".format(u.full_name))
+            return
+
         if UtilBot.is_user_blocked(event.conv_id, u.id_):
             UtilBot.remove_from_blocklist(event.conv_id, u.id_)
             bot.send_message(event.conv, "Unblocked User: {}".format(u.full_name))
