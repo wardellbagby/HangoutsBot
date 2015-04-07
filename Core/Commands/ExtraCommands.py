@@ -61,6 +61,9 @@ def udefine(bot, event, *args):
                 bot.send_message(event.conv, error_response)
             result = response.content.decode()
             result_list = json.loads(result)
+            if len(result_list) == 0:
+                bot.send_message(event.conv, error_response)
+                return
             num_requested = min(num_requested, len(result_list) - 1)
             num_requested = max(0, num_requested)
             result = result_list[num_requested].get(
@@ -88,6 +91,8 @@ def remind(bot, event, *args):
     Usage: /remind
     Usage /remind delete <index to delete> {/remind delete 1}
     Purpose: Will post a message on the date and time specified to the current chat. With no arguments, it'll list all the reminders."""
+
+    # Show all reminders
     if len(args) == 0:
         segments = [hangups.ChatMessageSegment('Reminders:', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
@@ -96,7 +101,8 @@ def remind(bot, event, *args):
                 reminder = reminders[x]
                 reminder_timer = reminder[0]
                 reminder_text = reminder[1]
-                date_to_post = datetime.now() + timedelta(seconds=reminder_timer.interval)
+                reminder_set_time = reminder[2]
+                date_to_post = reminder_set_time + timedelta(seconds=reminder_timer.interval)
                 segments.append(
                     hangups.ChatMessageSegment(
                         str(x + 1) + ' - ' + date_to_post.strftime('%m/%d/%y %I:%M%p') + ' : ' + reminder_text))
@@ -106,6 +112,8 @@ def remind(bot, event, *args):
         else:
             bot.send_message(event.conv, "No reminders are currently set.")
         return
+
+    # Delete a reminder
     if args[0] == 'delete':
         try:
             x = int(args[1])
@@ -122,6 +130,7 @@ def remind(bot, event, *args):
             bot.send_message(event.conv, 'Invalid integer: ' + str(x + 1))
         return
 
+    # Function for sending reminders to a chat.
     def send_reminder(bot, conv, reminder_time, reminder_text, loop):
         asyncio.set_event_loop(loop)
         bot.send_message(conv, reminder_text)
@@ -129,6 +138,7 @@ def remind(bot, event, *args):
             if reminder[0].interval == reminder_time and reminder[1] == reminder_text:
                 reminders.remove(reminder)
 
+    # Set a new reminder
     args = list(args)
     date = str(datetime.now().today().date())
     time = str((datetime.now() + timedelta(hours=1)).time())
@@ -169,7 +179,7 @@ def remind(bot, event, *args):
     reminder_interval = (reminder_time - current_time).seconds
     reminder_timer = threading.Timer(reminder_interval, send_reminder,
                                      [bot, event.conv, reminder_interval, reminder_text, asyncio.get_event_loop()])
-    reminders.append((reminder_timer, reminder_text))
+    reminders.append((reminder_timer, reminder_text, current_time))
     reminder_timer.start()
     bot.send_message(event.conv, "Reminder set for " + reminder_time.strftime('%B %d, %Y %I:%M%p'))
 
@@ -255,7 +265,7 @@ def record(bot, event, *args):
     filepath = os.path.join(directory, filename)
     file = None
 
-        # Deletes the record for the day.
+    # Deletes the record for the day.
     if ''.join(args) == "clear":
         file = open(filepath, "a+")
         file.seek(0)
