@@ -81,7 +81,6 @@ def check_if_can_run_command(bot, event, command):
     if commands_conv_admin_list and (command in commands_conv_admin_list):
         if (admins_list and event.user_id[0] not in admins_list) \
                 and (conv_admin and event.user_id[0] != conv_admin):
-            print("Command %s is not allowed for %s" % (command, event.user.full_name))
             return False
 
     # Check if this is a admin-only command.
