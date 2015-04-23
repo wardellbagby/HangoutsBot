@@ -7,12 +7,13 @@ import asyncio
 import time
 import signal
 import traceback
+import sqlite3
 
 import hangups
 from hangups.ui.utils import get_conv_name
 from Core.Commands.Dispatcher import DispatcherSingleton
 
-from Core.Util import ConfigDict
+from Core.Util import ConfigDict, UtilDB
 from Core import Handlers
 
 
@@ -57,6 +58,9 @@ class HangoutsBot(object):
         # Load config file
         self.config = ConfigDict.ConfigDict(config_path)
         self.devmode = self.get_config_suboption('', 'development_mode')
+
+        self.database = "database.db"
+        UtilDB.setDatabase(self.database)
 
         # Handle signals on Unix
         # (add_signal_handler is not implemented on Windows)
@@ -113,7 +117,7 @@ class HangoutsBot(object):
         """Connect to Hangouts and run bot"""
         cookies = self.login(self._cookies_path)
         if cookies:
-            for retry in range(self._max_retries):
+            while True:
                 try:
                     # Create Hangups client
                     self._client = hangups.Client(cookies)
@@ -131,9 +135,7 @@ class HangoutsBot(object):
                     log.writelines(str(datetime.now()) + ":\n " + traceback.format_exc() + "\n\n")
                     log.close()
                     print(traceback.format_exc())
-                    print('Waiting {} seconds...'.format(5 + retry * 5))
-                    time.sleep(5 + retry * 5)
-                    print('Trying to connect again (try {} of {})...'.format(retry + 1, self._max_retries))
+                    time.sleep(10)
             print('Maximum number of retries reached! Exiting...')
         sys.exit(1)
 
@@ -274,7 +276,7 @@ class HangoutsBot(object):
 
         print('Conversations:')
         for c in self.list_conversations():
-            print('  {} ({})'.format(get_conv_name(c, truncate=True), c.id_))
+            print(('  {} ({})'.format(get_conv_name(c, truncate=True), c.id_)).encode('UTF-8'))
         print()
 
     def _on_event(self, conv_event):

@@ -5,6 +5,7 @@ import re
 
 from bs4 import BeautifulSoup
 import hangups
+from hangups import schemas
 from hangups.ui.utils import get_conv_name
 
 from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
@@ -25,7 +26,7 @@ def unknown_command(bot, event, *args):
 @DispatcherSingleton.register_hidden
 def think(bot, event, *args):
     if clever_session:
-        yield from bot.send_message(event.conv, clever_session.think(' '.join(args)))
+        bot.send_message(event.conv, clever_session.think(' '.join(args)))
 
 
 @DispatcherSingleton.register
@@ -634,3 +635,31 @@ def vote(bot, event, set_vote=None, *args):
             bot.send_message(event.conv, "No vote currently started.")
     else:
         bot.send_message(event.conv, "No vote currently started.")
+
+
+@DispatcherSingleton.register_hidden
+def karma(bot, event, *args):
+    username = ' '.join(args)
+    username = username.replace('@', '')
+    add = username.count("+")
+    sub = username.count("-")
+    if add > 6:
+        add = 6
+    if sub > 6:
+        sub = 6
+    username = username.replace("+", "")
+    username = username.replace("-", "")
+    username = username.lower()
+    for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
+        if username not in u.full_name.lower():
+            continue
+        new_karma = None
+        if add >= 2 and sub == 0:
+            new_karma = UtilBot.change_karma(u.id_[0], add - 1)
+        elif sub >= 2 and add == 0:
+            new_karma = UtilBot.change_karma(u.id_[0], (sub - 1) * -1)
+        if new_karma is not None:
+            bot.send_message(event.conv, "{}'s karma is now {}".format(u.full_name, new_karma))
+            return
+
+    yield from bot._client.settyping(event.conv_id, schemas.TypingStatus.STOPPED)

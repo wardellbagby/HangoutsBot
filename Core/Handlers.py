@@ -20,11 +20,14 @@ class MessageHandler(object):
 
     def word_in_text(self, word, text):
         """Return True if word is in text"""
-        escaped = word.encode('unicode-escape').decode()
-        if word != escaped:
-            return word in text
 
-        return True if re.search('\\b' + word + '\\b', text, re.IGNORECASE) else False
+        if word[0] == '^' and word[-1] == '$':
+            return re.match(word, text)
+        else:
+            escaped = word.encode('unicode-escape').decode()
+            if word != escaped:
+                return word in text
+            return True if re.search('\\b' + word + '\\b', text, re.IGNORECASE) else False
 
     @asyncio.coroutine
     def handle(self, event):
@@ -134,7 +137,14 @@ class MessageHandler(object):
                         if sentence[0] == self.command_char:
                             yield from self.bot._client.settyping(event.conv_id)
                             event.text = sentence.format(event.text)
-                            yield from self.handle_command(event)
+
+                            # Cheating so auto-replies come through as System user.
+                            if not event.user.is_self:
+                                event.user.is_self = True
+                                yield from self.handle_command(event)
+                                event.user.is_self = False
+                            else:
+                                yield from self.handle_command(event)
+                            return
                         else:
                             self.bot.send_message(event.conv, sentence)
-                        break
