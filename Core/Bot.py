@@ -7,7 +7,6 @@ import asyncio
 import time
 import signal
 import traceback
-import sqlite3
 
 import hangups
 from hangups.ui.utils import get_conv_name

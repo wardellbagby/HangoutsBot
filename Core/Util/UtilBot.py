@@ -563,3 +563,11 @@ def change_karma(user_id, karma):
         user_karma = 0
     UtilDB.set_value_by_user_id("karma", user_id, "karma", (user_karma + karma))
     return user_karma + karma
+
+
+def get_current_karma(user_id):
+    user_karma = UtilDB.get_value_by_user_id("karma", user_id)
+    if user_karma is not None:
+        return user_karma[1]
+    else:
+        return 0

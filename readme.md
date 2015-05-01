@@ -13,6 +13,8 @@ In order to use this, you'll need to setup a GMail account for logging in, and a
   "admins": ["YOUR-USER-ID-HERE"],
   "autoreplies_enabled": true,
   "autoreplies": [
+    [["^@[\\w\\s]+\\++$"],"/karma {}"],
+    [["^@[\\w\\s]+-+$"],"/karma {}"],
     [["bot", "robot", "Yo"], "/think {}"]
   ],
   "development_mode": false,
