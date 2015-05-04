@@ -1,4 +1,9 @@
+import asyncio
+import html
 import json
+import os
+import random
+import threading
 from urllib import parse
 from urllib import request
 import re
@@ -715,9 +720,49 @@ def karma(bot, event, name=None, *args):
                 segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
                 segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
 
-
         segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
         segments.append(hangups.ChatMessageSegment("Average Karma:", is_italic=True))
         segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
         segments.append(hangups.ChatMessageSegment('{}'.format((sum([i[1] for i in karma_list]) / len(karma_list)))))
         bot.send_message_segments(event.conv, segments)
+
+
+@DispatcherSingleton.register_aliases(["img", "image"])
+def image(bot, event, *args):
+    query = ' '.join(args)
+    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&' \
+          + parse.urlencode({'q': query})
+
+    resp = request.urlopen(url)
+    image_json = json.loads(resp.read().decode())
+    url = image_json['responseData']['results'][0]['unescapedUrl']
+
+    @asyncio.coroutine
+    def send_image(bot, event, url):
+        image_id = yield from bot.upload_image(url)
+        bot.send_message_segments(event.conv, [
+            hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
+                                  image_id=image_id)
+
+    yield from send_image(bot, event, url)
+
+
+# TODO ASYNC ASAP
+@DispatcherSingleton.register
+def gif(bot, event, *args):
+    query = ' '.join(args)
+    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgtype=animated&' \
+          + parse.urlencode({'q': query})
+    resp = request.urlopen(url)
+    image_json = json.loads(resp.read().decode())
+    url = image_json['responseData']['results'][0]['unescapedUrl']
+
+    @asyncio.coroutine
+    def send_image(bot, event, url):
+        image_id = yield from bot.upload_image(url)
+        bot.send_message_segments(event.conv, [
+            hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
+                                  image_id=image_id)
+
+    yield from send_image(bot, event, url)
+

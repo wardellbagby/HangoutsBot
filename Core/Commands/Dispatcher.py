@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from functools import wraps
 from Core.Util import UtilBot
 import traceback
 
@@ -69,6 +70,24 @@ class CommandDispatcher(object):
             log.writelines(str(datetime.now()) + ":\n " + traceback.format_exc() + "\n\n")
             log.close()
             print(traceback.format_exc())
+
+    # def register(self, func, aliases=None):
+    #     """Decorator for registering command"""
+    #     if aliases is None or len(aliases) == 0:
+    #         self.commands[func.__name__] = func
+    #     else:
+    #         for alias in aliases:
+    #             self.commands[alias] = func
+    #     return func
+
+
+    def register_aliases(self, aliases=None):
+        def func_wrapper(func):
+            for alias in aliases:
+                self.commands[alias] = func
+            return func
+        return func_wrapper
+
 
     def register(self, func):
         """Decorator for registering command"""
