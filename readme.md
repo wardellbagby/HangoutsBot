@@ -1,6 +1,8 @@
 HangoutsBot
 ==============
 
+Before you get started, I highly recommend you take a look at [xmikos's Hangupsbot](https://github.com/xmikos/hangupsbot) from which this is a fork of. 
+
 Setup
 --------------
 
@@ -11,10 +13,12 @@ In order to use this, you'll need to setup a GMail account for logging in, and a
   "admins": ["YOUR-USER-ID-HERE"],
   "autoreplies_enabled": true,
   "autoreplies": [
+    [["^@[\\w\\s]+\\++$"],"/karma {}"],
+    [["^@[\\w\\s]+-+$"],"/karma {}"],
     [["bot", "robot", "Yo"], "/think {}"]
   ],
   "development_mode": false,
-  "commands_admin": ["hangouts", "reload", "quit", "config", "block"],
+  "commands_admin": ["hangouts", "reload", "quit", "config", "block", "record clear"],
   "commands_conversation_admin": ["leave", "echo", "block"],
   "commands_enabled": true,
   "forwarding_enabled": false,
@@ -42,13 +46,13 @@ Line by Line breakdown (excluding braces/brackets):
 2. Sets autoreplies to be enabled for every conversation the bot is in.  
 3. Sets the autoreplies for all conversations the bot is in.  
 4. Sets "Dev Mode" to default to off for all conversations. Dev Mode will force the bot to print out all of it's replies to the console window instead of replying via Hangouts.  
-5. Array of all of the commands that only admins will have access to use.  
+5. Array of all of the commands that only admins will have access to use.  Note: You can block subcommands by explictly stating the command and subcommand (as in "record clear"). You can block all subcommands by using "command \*"  
 6. Array of all of the commands that only conversation admins and normal admins will have access to use.  
 7. Sets commands to be enabled for all chats.  
 8. Sets chat forwarding for all chats to disabled. (When enabled, you must have a conversation object with a "forward_to" member that is set to a different conversation id.)  
 9. Sets rename watching to enabled. (This is required to have /record record name changes.)  
 10. Start of the conversations dictionary.  
-11. Start of a conversation specific dictionary. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxxxxxxxxx".  
+11. Start of a conversation specific dictionary. "CONV-ID-HERE" should be replaced with an actual id, which looks something like "Ugxxxxxxxxxxx_xxxxxx4AaABAQ".  
 12. Sets the conversation admin for a specific conversation. Unlike the admins array on line 1, there can only be one conversation admin per conversation.  
 13. Sets the autoreplies for this specific conversation, which entirely overrides any autoreplies set for all conversations.  
 14. Sets an autoreply keyword and reply. In this case, "whistle", "bot", and "whistlebot" are all keywords, and the reply will be the command /think, which will be given the entirety of what the user posted. For example: A user saying "Bot, how are you?" would cause the command "/think Bot, how are you?" to be ran. NOTE: The keywords are case-insensitive.  
@@ -66,7 +70,7 @@ To actually get the bot up and running, run the Main.py file. If you have Git in
 most recent version from the repo. If you don't want that functionality, simply delete the os.system("git pull") line from
 Main.py.  
 
-On first load, it will ask you for an Email and Password. Input that and the bot will start.    
+On first load, it will ask you for an Email and Password for a Google Account. Input that and the bot will start.    
 
 Upon connection, test to make sure that the bot is functioning properly by starting a chat with it and using /ping. If it replies with 'pong', you're in business! If not, manually log into the bot's gmail account and see if it didn't auto-accept the Hangouts invitation.  
 

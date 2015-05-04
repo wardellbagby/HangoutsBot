@@ -2,46 +2,32 @@
 # coding=utf-8
 from datetime import date, datetime
 import os
+import random
 import sys
 import asyncio
+import tempfile
 import time
 import signal
 import traceback
+from urllib import request
+from urllib.request import FancyURLopener
 
 import hangups
 from hangups.ui.utils import get_conv_name
 from Core.Commands.Dispatcher import DispatcherSingleton
 
-from Core.Util import ConfigDict
+from Core.Util import ConfigDict, UtilDB
 from Core import Handlers
 
 
+class HangoutsBotOpener(FancyURLopener):
+    version = 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
+
+
+request.urlretrieve = HangoutsBotOpener().retrieve
+
 __version__ = '1.1'
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-base_config = '''{
-  "admins": ["YOUR-USER-ID-HERE"],
-  "autoreplies_enabled": true,
-  "autoreplies": [
-    [["bot", "robot", "Yo"], "/think {}"]
-  ],
-  "development_mode": false,
-  "commands_admin": ["hangouts", "reload", "quit", "config", "block"],
-  "commands_conversation_admin": ["leave", "echo", "block"]
-  "commands_enabled": true,
-  "forwarding_enabled": false,
-  "rename_watching_enabled": true,
-  "conversations": {
-    "CONV-ID-HERE": {
-      "autoreplies": [
-        [["whistle", "bot", "whistlebot"], "/think {}"],
-        [["trash"], "You're trash"]
-      ],
-      "forward_to": [
-        "CONV1_ID"
-      ]
-    }
-  }
-}'''
 
 
 class ConversationEvent(object):
@@ -81,6 +67,9 @@ class HangoutsBot(object):
         # Load config file
         self.config = ConfigDict.ConfigDict(config_path)
         self.devmode = self.get_config_suboption('', 'development_mode')
+
+        self.database = "database.db"
+        UtilDB.setDatabase(self.database)
 
         # Handle signals on Unix
         # (add_signal_handler is not implemented on Windows)
@@ -137,7 +126,7 @@ class HangoutsBot(object):
         """Connect to Hangouts and run bot"""
         cookies = self.login(self._cookies_path)
         if cookies:
-            for retry in range(self._max_retries):
+            while True:
                 try:
                     # Create Hangups client
                     self._client = hangups.Client(cookies)
@@ -155,9 +144,7 @@ class HangoutsBot(object):
                     log.writelines(str(datetime.now()) + ":\n " + traceback.format_exc() + "\n\n")
                     log.close()
                     print(traceback.format_exc())
-                    print('Waiting {} seconds...'.format(5 + retry * 5))
-                    time.sleep(5 + retry * 5)
-                    print('Trying to connect again (try {} of {})...'.format(retry + 1, self._max_retries))
+                    time.sleep(10)
             print('Maximum number of retries reached! Exiting...')
         sys.exit(1)
 
@@ -240,7 +227,8 @@ class HangoutsBot(object):
         """"Send simple chat message"""
         self.send_message_segments(conversation, [hangups.ChatMessageSegment(text)])
 
-    def send_message_segments(self, conversation, segments):
+
+    def send_message_segments(self, conversation, segments, image_id=None):
         """Send chat message segments"""
         # Ignore if the user hasn't typed a message.
         if len(segments) == 0:
@@ -248,8 +236,22 @@ class HangoutsBot(object):
         # XXX: Exception handling here is still a bit broken. Uncaught
         # exceptions in _on_message_sent will only be logged.
         asyncio.async(
-            conversation.send_message(segments)
+            conversation.send_message(segments, image_id=image_id)
         ).add_done_callback(self._on_message_sent)
+
+
+    @asyncio.coroutine
+    def upload_image(self, url, filename=None, delete=False):
+        if not filename:
+            tempdir = tempfile.gettempdir()
+            filename = tempdir + os.sep + '{}.png'.format(random.randint(0, 9999999999))
+        request.urlretrieve(url, filename)
+        file = open(filename, "rb")
+        image_id = yield from self._client.upload_image(file)
+        if delete:
+            file.close()
+            os.remove(filename)
+        return image_id
 
     def list_conversations(self):
         """List all active conversations"""
@@ -298,7 +300,7 @@ class HangoutsBot(object):
 
         print('Conversations:')
         for c in self.list_conversations():
-            print('  {} ({})'.format(get_conv_name(c, truncate=True), c.id_))
+            print(('  {} ({})'.format(get_conv_name(c, truncate=True), c.id_)).encode('UTF-8'))
         print()
 
     def _on_event(self, conv_event):

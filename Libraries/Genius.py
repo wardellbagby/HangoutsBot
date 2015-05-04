@@ -68,8 +68,6 @@ class Song:
         self._featured_artists = ""
         self._raw_lyrics = ""
 
-    #TODO - lyric + annotation stuff
-
     def __str__(self):
         return self.name + ' - ' + self.url
 
@@ -278,7 +276,6 @@ def get_lyrics_from_url(url):
     Returns string of (unannotated) lyrics, given a URL
     """
 
-    #TODO - exeptions
     soup = _get_soup(url)
     ret = ""
     for row in soup('div', {'class': 'lyrics'}):

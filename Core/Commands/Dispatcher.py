@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from functools import wraps
 from Core.Util import UtilBot
 import traceback
 
@@ -8,7 +9,8 @@ and annotate any function that you wish to be a command with the @DispatcherSing
 appear in the bot's help menu and be available to use.
 
 For commands that should be hidden, use the @DispatcherSingleton.register_hidden annotation instead, and it won't
-appear in the /help menu.
+appear in the /help menu. It should be noted that hidden commands' primary purpose are to be used with autoreplies, and
+won't be able to be ran by anyone other than the Bot itself.
 
 To choose what happens when a command isn't found, register a function with @DispatcherSingleton.register_unknown, and
 that function will run whenever the Bot can't find a command that suits what the user entered.'''
@@ -39,7 +41,10 @@ class CommandDispatcher(object):
             func = self.commands[command]
         except KeyError:
             try:
-                func = self.hidden_commands[command]
+                if event.user.is_self:
+                    func = self.hidden_commands[command]
+                else:
+                    raise KeyError
             except KeyError:
                 if self.unknown_command:
                     func = self.unknown_command
@@ -66,12 +71,45 @@ class CommandDispatcher(object):
             log.close()
             print(traceback.format_exc())
 
+    def register_aliases(self, aliases=None):
+        """Registers a command under the function name & any names specified in aliases.
+        """
+
+        def func_wrapper(func):
+            self.commands[func.__name__] = func
+            for alias in aliases:
+                self.commands[alias] = func
+            return func
+
+        return func_wrapper
+
+    def register_extras(self, is_hidden=False, aliases=None):
+        """Registers a function as hidden with aliases, or any combination of that."""
+
+        def func_wrapper(func):
+            if is_hidden and aliases:
+                self.hidden_commands[func.__name__] = func
+                for alias in aliases:
+                    self.hidden_commands[alias] = func
+            elif aliases:
+                self.commands[func.__name__] = func
+                for alias in aliases:
+                    self.commands[alias] = func
+            elif is_hidden:
+                self.hidden_commands[func.__name__] = func
+            else:
+                self.commands[func.__name__] = func
+            return func
+
+        return func_wrapper
+
     def register(self, func):
         """Decorator for registering command"""
         self.commands[func.__name__] = func
         return func
 
     def register_hidden(self, func):
+        """Registers a command as hidden (This makes it only runnable by the Bot and it won't appear in the help menu)"""
         self.hidden_commands[func.__name__] = func
         return func
 

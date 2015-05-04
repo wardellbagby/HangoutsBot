@@ -4,9 +4,11 @@ from urllib import request
 from bs4 import BeautifulSoup, Tag
 import re
 import hangups
+from Core.Util import UtilDB
 
 __author__ = 'wardellchandler'
 
+# TODO I think this is a relic of Bots Past. Check into whether it's needed.
 words = open("Core" + os.sep + "Util" + os.sep + "wordlist.txt")
 word_list = []
 for line in words:
@@ -20,6 +22,10 @@ _blocklist = {}
 _vote_subject = {}
 _voted_tally = {}
 _vote_callbacks = {}
+
+# For the /record command
+_last_recorder = {}
+_last_recorded = {}
 
 
 def is_user_conv_admin(bot, user_info, conv_id=None):
@@ -44,6 +50,7 @@ def is_user_conv_admin(bot, user_info, conv_id=None):
 
 
 def is_user_admin(bot, user_info, conv_id=None):
+    user_id = None
     if isinstance(user_info, hangups.ConversationEvent):
         user_id = user_info.user_id
         conv_id = user_info.conversation_id
@@ -70,18 +77,19 @@ def check_if_can_run_command(bot, event, command):
     admins_list = bot.get_config_suboption(event.conv_id, 'admins')
     conv_admin = bot.get_config_suboption(event.conv_id, 'conversation_admin')
 
+
     # Check if this is a conversation admin command.
-    if commands_conv_admin_list and command in commands_conv_admin_list:
-        if (admins_list and event.user_id[0] not in admins_list) and (
-                    not conv_admin or (event.user_id[0] not in conv_admin)):
+    if commands_conv_admin_list and (command in commands_conv_admin_list):
+        if (admins_list and event.user_id[0] not in admins_list) \
+                and (conv_admin and event.user_id[0] != conv_admin):
             return False
 
     # Check if this is a admin-only command.
-    if commands_admin_list and command in commands_admin_list:
+    if commands_admin_list and (command in commands_admin_list):
         if not admins_list or event.user_id[0] not in admins_list:
             return False
     return True
-    
+
 
 def get_vote_subject(conv_id):
     if conv_id in _vote_subject:
@@ -516,10 +524,10 @@ def text_to_segments(text):
         if line:
             if line[:2] == '**' and line[-2:] == '**':
                 line = line[2:-2]
-                segments.append(hangups.ChatMessageSegment(line, is_italic=True))
+                segments.append(hangups.ChatMessageSegment(line, is_bold=True))
             elif line[0] == '*' and line[-1] == '*':
                 line = line[1:-1]
-                segments.append(hangups.ChatMessageSegment(line, is_bold=True))
+                segments.append(hangups.ChatMessageSegment(line, is_italic=True))
             else:
                 segments.append(hangups.ChatMessageSegment(line))
             segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
@@ -527,3 +535,39 @@ def text_to_segments(text):
         segments.append(hangups.ChatMessageSegment(lines[-1]))
 
     return segments
+
+
+def get_last_recorder(conv_id):
+    if conv_id in _last_recorder:
+        return _last_recorder[conv_id]
+
+
+def get_last_recorded(conv_id):
+    if conv_id in _last_recorded:
+        return _last_recorded[conv_id]
+
+
+def set_last_recorder(conv_id, last_recorder):
+    _last_recorder[conv_id] = last_recorder
+
+
+def set_last_recorded(conv_id, last_recorded):
+    _last_recorded[conv_id] = last_recorded
+
+
+def change_karma(user_id, karma):
+    user_karma = UtilDB.get_value_by_user_id("karma", user_id)
+    if user_karma is not None:
+        user_karma = user_karma[1]
+    else:
+        user_karma = 0
+    UtilDB.set_value_by_user_id("karma", user_id, "karma", (user_karma + karma))
+    return user_karma + karma
+
+
+def get_current_karma(user_id):
+    user_karma = UtilDB.get_value_by_user_id("karma", user_id)
+    if user_karma is not None:
+        return user_karma[1]
+    else:
+        return 0
