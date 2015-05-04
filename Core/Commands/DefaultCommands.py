@@ -5,6 +5,7 @@ import re
 
 from bs4 import BeautifulSoup
 import hangups
+from hangups import schemas
 from hangups.ui.utils import get_conv_name
 
 from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
@@ -25,7 +26,7 @@ def unknown_command(bot, event, *args):
 @DispatcherSingleton.register_hidden
 def think(bot, event, *args):
     if clever_session:
-        yield from bot.send_message(event.conv, clever_session.think(' '.join(args)))
+        bot.send_message(event.conv, clever_session.think(' '.join(args)))
 
 
 @DispatcherSingleton.register
@@ -421,8 +422,10 @@ def status(bot, event, *args):
     """
     **Status:**
     Usage: /status
-    Purpose: Shows current bot status.
+    Usage: /status <name>
+    Purpose: Shows current bot or user status.
     """
+
     segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
                 hangups.ChatMessageSegment(
@@ -634,3 +637,87 @@ def vote(bot, event, set_vote=None, *args):
             bot.send_message(event.conv, "No vote currently started.")
     else:
         bot.send_message(event.conv, "No vote currently started.")
+
+
+@DispatcherSingleton.register_hidden
+def _karma(bot, event, *args):
+    username = ' '.join(args)
+    username = username.replace('@', '')
+    add = username.count("+")
+    sub = username.count("-")
+    if add > 6:
+        add = 6
+    if sub > 6:
+        sub = 6
+    username = username.replace("+", "")
+    username = username.replace("-", "")
+    username = username.lower()
+    for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
+        if username not in u.full_name.lower():
+            continue
+        if u.id_ == event.user.id_:
+            bot.send_message(event.conv, "Your Karma changes with actions upon others, not actions upon oneself.")
+            return
+
+        new_karma = None
+        if add >= 2 and sub == 0:
+            new_karma = UtilBot.change_karma(u.id_[0], add - 1)
+        elif sub >= 2 and add == 0:
+            new_karma = UtilBot.change_karma(u.id_[0], (sub - 1) * -1)
+        if new_karma is not None:
+            bot.send_message(event.conv, "{}'s karma is now {}".format(u.full_name, new_karma))
+            return
+
+    yield from bot._client.settyping(event.conv_id, schemas.TypingStatus.STOPPED)
+
+
+@DispatcherSingleton.register
+def karma(bot, event, name=None, *args):
+    if name:
+        if name[0] == '@':
+            name = name[1:]
+        lower_name = name.lower()
+        for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
+            if lower_name not in u.full_name.lower():
+                continue
+
+            segments = [hangups.ChatMessageSegment('%s:' % u.full_name, is_bold=True),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                        hangups.ChatMessageSegment('Karma: ' + str(UtilBot.get_current_karma(u.id_[0])))]
+            bot.send_message_segments(event.conv, segments)
+            return
+        bot.send_message(event.conv, 'No user found matching "%s".' % name)
+
+    else:
+        karma_list = []
+        list_num = min(5, int(len(event.conv.users) / 2) + 1)
+        for u in event.conv.users:
+            karma_list.append((u.full_name, UtilBot.get_current_karma(u.id_[0])))
+        karma_list.sort(key=lambda x: -x[1])
+        segments = [hangups.ChatMessageSegment("Karma Stats:", is_bold=True),
+                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment("Top:", is_italic=True),
+                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
+        if len(event.conv.users) > 10:
+            for i in range(0, min(list_num, len(event.conv.users))):
+                segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
+                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+
+            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment("Bottom:", is_italic=True))
+            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+
+            for i in range(-1, -min(list_num, len(event.conv.users)) - 1, -1):
+                segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
+                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+        else:
+            for i in range(0, len(event.conv.users)):
+                segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
+                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+
+
+        segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+        segments.append(hangups.ChatMessageSegment("Average Karma:", is_italic=True))
+        segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+        segments.append(hangups.ChatMessageSegment('{}'.format((sum([i[1] for i in karma_list]) / len(karma_list)))))
+        bot.send_message_segments(event.conv, segments)

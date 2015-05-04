@@ -7,6 +7,8 @@ base_config = '''{
   "admins": ["YOUR-USER-ID-HERE"],
   "autoreplies_enabled": true,
   "autoreplies": [
+    [["^@[\\w\\s]+\\++$"],"/karma {}"],
+    [["^@[\\w\\s]+-+$"],"/karma {}"],
     [["bot", "robot", "Yo"], "/think {}"]
   ],
   "development_mode": false,
@@ -38,7 +40,7 @@ if __name__ == "__main__":
     elif os.path.isfile("Core" + os.sep + "config.json"):
         HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json", command_char='/').run()
     else:
-        print("Error finding config.json file. Creating default config file in at Core/config.json")
+        print("Error finding config.json file. Creating default config file at Core/config.json")
         config_file = open("Core" + os.sep + "config.json", 'w+')
         config_file.writelines(base_config)
         config_file.close()

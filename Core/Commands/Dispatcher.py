@@ -8,7 +8,8 @@ and annotate any function that you wish to be a command with the @DispatcherSing
 appear in the bot's help menu and be available to use.
 
 For commands that should be hidden, use the @DispatcherSingleton.register_hidden annotation instead, and it won't
-appear in the /help menu.
+appear in the /help menu. It should be noted that hidden commands' primary purpose are to be used with autoreplies, and
+won't be able to be ran by anyone other than the Bot itself.
 
 To choose what happens when a command isn't found, register a function with @DispatcherSingleton.register_unknown, and
 that function will run whenever the Bot can't find a command that suits what the user entered.'''
@@ -39,7 +40,10 @@ class CommandDispatcher(object):
             func = self.commands[command]
         except KeyError:
             try:
-                func = self.hidden_commands[command]
+                if event.user.is_self:
+                    func = self.hidden_commands[command]
+                else:
+                    raise KeyError
             except KeyError:
                 if self.unknown_command:
                     func = self.unknown_command

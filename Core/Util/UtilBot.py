@@ -4,6 +4,7 @@ from urllib import request
 from bs4 import BeautifulSoup, Tag
 import re
 import hangups
+from Core.Util import UtilDB
 
 __author__ = 'wardellchandler'
 
@@ -552,3 +553,21 @@ def set_last_recorder(conv_id, last_recorder):
 
 def set_last_recorded(conv_id, last_recorded):
     _last_recorded[conv_id] = last_recorded
+
+
+def change_karma(user_id, karma):
+    user_karma = UtilDB.get_value_by_user_id("karma", user_id)
+    if user_karma is not None:
+        user_karma = user_karma[1]
+    else:
+        user_karma = 0
+    UtilDB.set_value_by_user_id("karma", user_id, "karma", (user_karma + karma))
+    return user_karma + karma
+
+
+def get_current_karma(user_id):
+    user_karma = UtilDB.get_value_by_user_id("karma", user_id)
+    if user_karma is not None:
+        return user_karma[1]
+    else:
+        return 0
