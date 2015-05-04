@@ -559,7 +559,7 @@ def vote(bot, event, set_vote=None, *args):
             if vote_result != 0:
                 bot.send_message(event.conv,
                                  'In the matter of: "' + UtilBot.get_vote_subject(event.conv_id) + '", the ' + (
-                                     'Yeas' if vote_result else 'Nays') + ' have it.')
+                                     'Yeas' if vote_result > 0 else 'Nays') + ' have it.')
             else:
                 bot.send_message(event.conv, "The vote ended in a tie in the matter of: {}".format(
                     UtilBot.get_vote_subject(event.conv_id)))
