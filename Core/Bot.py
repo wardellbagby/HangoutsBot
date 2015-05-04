@@ -2,11 +2,15 @@
 # coding=utf-8
 from datetime import date, datetime
 import os
+import random
 import sys
 import asyncio
+import tempfile
 import time
 import signal
 import traceback
+from urllib import request
+from urllib.request import FancyURLopener
 
 import hangups
 from hangups.ui.utils import get_conv_name
@@ -15,6 +19,12 @@ from Core.Commands.Dispatcher import DispatcherSingleton
 from Core.Util import ConfigDict, UtilDB
 from Core import Handlers
 
+
+class HangoutsBotOpener(FancyURLopener):
+    version = 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
+
+
+request.urlretrieve = HangoutsBotOpener().retrieve
 
 __version__ = '1.1'
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -217,7 +227,8 @@ class HangoutsBot(object):
         """"Send simple chat message"""
         self.send_message_segments(conversation, [hangups.ChatMessageSegment(text)])
 
-    def send_message_segments(self, conversation, segments):
+
+    def send_message_segments(self, conversation, segments, image_id=None):
         """Send chat message segments"""
         # Ignore if the user hasn't typed a message.
         if len(segments) == 0:
@@ -225,8 +236,22 @@ class HangoutsBot(object):
         # XXX: Exception handling here is still a bit broken. Uncaught
         # exceptions in _on_message_sent will only be logged.
         asyncio.async(
-            conversation.send_message(segments)
+            conversation.send_message(segments, image_id=image_id)
         ).add_done_callback(self._on_message_sent)
+
+
+    @asyncio.coroutine
+    def upload_image(self, url, filename=None, delete=False):
+        if not filename:
+            tempdir = tempfile.gettempdir()
+            filename = tempdir + os.sep + '{}.png'.format(random.randint(0, 9999999999))
+        request.urlretrieve(url, filename)
+        file = open(filename, "rb")
+        image_id = yield from self._client.upload_image(file)
+        if delete:
+            file.close()
+            os.remove(filename)
+        return image_id
 
     def list_conversations(self):
         """List all active conversations"""

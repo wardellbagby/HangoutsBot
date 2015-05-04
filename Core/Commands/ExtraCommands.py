@@ -12,6 +12,7 @@ from dateutil import parser
 import hangups
 import re
 import requests
+import parsedatetime
 from Core.Commands.Dispatcher import DispatcherSingleton
 from Core.Util import UtilBot
 from Libraries import Genius
@@ -140,43 +141,20 @@ def remind(bot, event, *args):
 
     # Set a new reminder
     args = list(args)
-    date = str(datetime.now().today().date())
-    time = str((datetime.now() + timedelta(hours=1)).time())
-    set_date = False
-    set_time = False
-    index = 0
-    while index < len(args):
-        item = args[index]
-        if item[0].isnumeric():
-            if '/' in item or '-' in item:
-                date = item
-                args.remove(date)
-                set_date = True
-                index -= 1
-            else:
-                time = item
-                args.remove(time)
-                set_time = True
-                index -= 1
-        if set_date and set_time:
-            break
-        index += 1
-
-    reminder_time = date + ' ' + time
-    if len(args) > 0:
-        reminder_text = ' '.join(args)
-    else:
+    reminder_text = ' '.join(args)
+    result = parsedatetime.nlp(reminder_text)
+    reminder_time = result[0][0]
+    reminder_text.replace(result[0][-1], '')
+    if reminder_text.strip() == '':
         bot.send_message(event.conv, 'No reminder text set.')
         return
+
     current_time = datetime.now()
-    try:
-        reminder_time = parser.parse(reminder_time)
-    except (ValueError, TypeError):
-        bot.send_message(event.conv, "Couldn't parse " + reminder_time + " as a valid date.")
-        return
     if reminder_time < current_time:
-        reminder_time = current_time + timedelta(hours=1)
+        bot.send_message("Invalid Date: {}".format(reminder_time.strftime('%B %d, %Y %I:%M%p')))
+
     reminder_interval = (reminder_time - current_time).seconds
+
     reminder_timer = threading.Timer(reminder_interval, send_reminder,
                                      [bot, event.conv, reminder_interval, reminder_text, asyncio.get_event_loop()])
     reminders.append((reminder_timer, reminder_text, current_time))
