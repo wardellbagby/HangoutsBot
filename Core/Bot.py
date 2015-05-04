@@ -5,6 +5,7 @@ import os
 import random
 import sys
 import asyncio
+import tempfile
 import time
 import signal
 import traceback
@@ -13,14 +14,16 @@ from urllib.request import FancyURLopener
 
 import hangups
 from hangups.ui.utils import get_conv_name
-import io
 from Core.Commands.Dispatcher import DispatcherSingleton
 
 from Core.Util import ConfigDict, UtilDB
 from Core import Handlers
 
+
 class HangoutsBotOpener(FancyURLopener):
     version = 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
+
+
 request.urlretrieve = HangoutsBotOpener().retrieve
 
 __version__ = '1.1'
@@ -238,13 +241,16 @@ class HangoutsBot(object):
 
 
     @asyncio.coroutine
-    def upload_image(self, url):
-        filename = '{}.png'.format(random.randint(0, 9999999999))
+    def upload_image(self, url, filename=None, delete=False):
+        if not filename:
+            tempdir = tempfile.gettempdir()
+            filename = tempdir + os.sep + '{}.png'.format(random.randint(0, 9999999999))
         request.urlretrieve(url, filename)
         file = open(filename, "rb")
         image_id = yield from self._client.upload_image(file)
-        file.close()
-        os.remove(filename)
+        if delete:
+            file.close()
+            os.remove(filename)
         return image_id
 
     def list_conversations(self):

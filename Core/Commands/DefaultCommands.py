@@ -727,7 +727,7 @@ def karma(bot, event, name=None, *args):
         bot.send_message_segments(event.conv, segments)
 
 
-@DispatcherSingleton.register_aliases(["img", "image"])
+@DispatcherSingleton.register_aliases(["img"])
 def image(bot, event, *args):
     query = ' '.join(args)
     url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&' \
@@ -747,7 +747,6 @@ def image(bot, event, *args):
     yield from send_image(bot, event, url)
 
 
-# TODO ASYNC ASAP
 @DispatcherSingleton.register
 def gif(bot, event, *args):
     query = ' '.join(args)
