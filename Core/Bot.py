@@ -14,6 +14,7 @@ from urllib.request import FancyURLopener
 
 import hangups
 from hangups.ui.utils import get_conv_name
+from requests import HTTPError
 from Core.Commands.Dispatcher import DispatcherSingleton
 
 from Core.Util import ConfigDict, UtilDB
@@ -245,7 +246,16 @@ class HangoutsBot(object):
         if not filename:
             tempdir = tempfile.gettempdir()
             filename = tempdir + os.sep + '{}.png'.format(random.randint(0, 9999999999))
-        request.urlretrieve(url, filename)
+        req = request.Request(url, headers={
+            'User-agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'})
+        image = request.urlopen(req)
+        try:
+            with open(filename, "wb") as image_file:
+                image_file.write(image.read())
+        except HTTPError as e:
+            raise e
+
+        # request.urlretrieve(url, filename)
         file = open(filename, "rb")
         image_id = yield from self._client.upload_image(file)
         if delete:
@@ -256,7 +266,7 @@ class HangoutsBot(object):
     def list_conversations(self):
         """List all active conversations"""
         convs = sorted(self._conv_list.get_all(),
-                       reverse=True, key=lambda c: c.last_modified)
+            reverse=True, key=lambda c: c.last_modified)
         return convs
 
     def get_config_suboption(self, conv_id, option):

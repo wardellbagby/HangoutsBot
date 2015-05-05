@@ -1,12 +1,10 @@
 import asyncio
-import html
 import json
-import os
 import random
-import threading
 from urllib import parse
 from urllib import request
 import re
+from urllib.error import HTTPError
 
 from bs4 import BeautifulSoup
 import hangups
@@ -427,8 +425,7 @@ def status(bot, event, *args):
     """
     **Status:**
     Usage: /status
-    Usage: /status <name>
-    Purpose: Shows current bot or user status.
+    Purpose: Shows current bot status.
     """
 
     segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
@@ -730,16 +727,20 @@ def karma(bot, event, name=None, *args):
 @DispatcherSingleton.register_aliases(["img"])
 def image(bot, event, *args):
     query = ' '.join(args)
-    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&' \
+    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&' \
           + parse.urlencode({'q': query})
 
     resp = request.urlopen(url)
     image_json = json.loads(resp.read().decode())
-    url = image_json['responseData']['results'][0]['unescapedUrl']
+    url = image_json['responseData']['results'][random.randint(0, 7)]['unescapedUrl']
 
     @asyncio.coroutine
     def send_image(bot, event, url):
-        image_id = yield from bot.upload_image(url)
+        try:
+            image_id = yield from bot.upload_image(url)
+        except HTTPError:
+            bot.send_message(event.conv, "Error attempting to upload image.")
+            return
         bot.send_message_segments(event.conv, [
             hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
                                   image_id=image_id)
@@ -750,11 +751,11 @@ def image(bot, event, *args):
 @DispatcherSingleton.register
 def gif(bot, event, *args):
     query = ' '.join(args)
-    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgtype=animated&' \
+    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&imgtype=animated&' \
           + parse.urlencode({'q': query})
     resp = request.urlopen(url)
     image_json = json.loads(resp.read().decode())
-    url = image_json['responseData']['results'][0]['unescapedUrl']
+    url = image_json['responseData']['results'][random.randint(0, 7)]['unescapedUrl']
 
     @asyncio.coroutine
     def send_image(bot, event, url):
