@@ -215,14 +215,18 @@ def goog(bot, event, *args):
           % query
     headers = {
         'User-agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'}
-    req = request.Request(url, None, headers)
-    resp = request.urlopen(req)
-    soup = BeautifulSoup(resp)
 
-    bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Result:', is_bold=True),
-                                           hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                                           hangups.ChatMessageSegment(soup.title.string, hangups.SegmentType.LINK,
-                                                                      link_target=url)])
+    @asyncio.coroutine
+    def send_goog_message(bot, event, url, headers=None):
+        req = request.Request(url, None, headers)
+        resp = request.urlopen(req, timeout=10)
+        soup = BeautifulSoup(resp)
+        bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Result:', is_bold=True),
+                                               hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                                               hangups.ChatMessageSegment(soup.title.string, hangups.SegmentType.LINK,
+                                                                          link_target=url)])
+
+    yield from send_goog_message(bot, event, url, headers)
 
 
 @DispatcherSingleton.register
