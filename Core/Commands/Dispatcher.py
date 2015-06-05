@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime
-from functools import wraps
 from Core.Util import UtilBot
 import traceback
 
@@ -25,6 +24,7 @@ class CommandDispatcher(object):
         self.commands = {}
         self.hidden_commands = {}
         self.unknown_command = None
+        self.on_connect_listeners = []
 
     @asyncio.coroutine
     def run(self, bot, event, bot_command_char, *args, **kwds):
@@ -83,7 +83,7 @@ class CommandDispatcher(object):
 
         return func_wrapper
 
-    def register_extras(self, is_hidden=False, aliases=None):
+    def register_extras(self, is_hidden=False, aliases=None, on_connect_listener=None):
         """Registers a function as hidden with aliases, or any combination of that."""
 
         def func_wrapper(func):
@@ -101,6 +101,8 @@ class CommandDispatcher(object):
                 self.commands[func.__name__] = func
             return func
 
+        self.on_connect_listeners.append(on_connect_listener)
+
         return func_wrapper
 
     def register(self, func):
@@ -116,6 +118,9 @@ class CommandDispatcher(object):
     def register_unknown(self, func):
         self.unknown_command = func
         return func
+
+    def register_on_connect_listener(self, func):
+        self.on_connect_listeners.append(func)
 
 # CommandDispatcher singleton
 DispatcherSingleton = CommandDispatcher()

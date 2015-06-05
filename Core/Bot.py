@@ -81,33 +81,6 @@ class HangoutsBot(object):
         except NotImplementedError:
             pass
 
-    @property
-    def dev(self):
-        return self.devmode
-
-    @dev.setter
-    def dev(self, value):
-        if value:
-            self.devmode = value
-        else:
-            self.devmode = False
-        if self.devmode:
-            def dev_send_segments(conversation, segments):
-                if len(segments) == 0:
-                    return
-                for segment in segments:
-                    print(segment.text if not segment.type_ == hangups.SegmentType.LINE_BREAK else "\n")
-
-            def dev_send(conversation, text):
-                dev_send_segments(conversation, [hangups.ChatMessageSegment(text)])
-
-            self.send_message_segments = dev_send_segments
-            self.send_message = dev_send
-        else:
-            self.send_message_segments = HangoutsBot("cookies.txt", "config.json").send_message_segments
-            self.send_message = HangoutsBot("cookies.txt", "config.json").send_message
-
-
     def restart(self):
         self.stop()
         self.run()
@@ -228,7 +201,6 @@ class HangoutsBot(object):
         """"Send simple chat message"""
         self.send_message_segments(conversation, [hangups.ChatMessageSegment(text)])
 
-
     def send_message_segments(self, conversation, segments, image_id=None):
         """Send chat message segments"""
         # Ignore if the user hasn't typed a message.
@@ -239,7 +211,6 @@ class HangoutsBot(object):
         asyncio.async(
             conversation.send_message(segments, image_id=image_id)
         ).add_done_callback(self._on_message_sent)
-
 
     @asyncio.coroutine
     def upload_image(self, url, filename=None, delete=False):
@@ -266,7 +237,7 @@ class HangoutsBot(object):
     def list_conversations(self):
         """List all active conversations"""
         convs = sorted(self._conv_list.get_all(),
-            reverse=True, key=lambda c: c.last_modified)
+                       reverse=True, key=lambda c: c.last_modified)
         return convs
 
     def get_config_suboption(self, conv_id, option):
@@ -296,7 +267,6 @@ class HangoutsBot(object):
     def _on_connect(self, initial_data):
         """Handle connecting for the first time"""
         print('Connected!')
-        self._message_handler = Handlers.MessageHandler(self, command_char=self._command_char)
 
         self._user_list = hangups.UserList(self._client,
                                            initial_data.self_entity,
@@ -307,6 +277,8 @@ class HangoutsBot(object):
                                                    self._user_list,
                                                    initial_data.sync_timestamp)
         self._conv_list.on_event.add_observer(self._on_event)
+
+        self._message_handler = Handlers.MessageHandler(self, command_char=self._command_char)
 
         print('Conversations:')
         for c in self.list_conversations():

@@ -1,9 +1,11 @@
 from bisect import bisect_left
+from datetime import datetime, timedelta
 import os
 from urllib import request
 from bs4 import BeautifulSoup, Tag
 import re
 import hangups
+import sqlite3
 from Core.Util import UtilDB
 
 __author__ = 'wardellchandler'
@@ -26,6 +28,9 @@ _vote_callbacks = {}
 # For the /record command
 _last_recorder = {}
 _last_recorded = {}
+
+_url_regex = r"^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$"
+
 
 
 def is_user_conv_admin(bot, user_info, conv_id=None):
@@ -571,3 +576,36 @@ def get_current_karma(user_id):
         return user_karma[1]
     else:
         return 0
+
+
+def add_reminder(conv_id, message, time):
+    db_file = UtilDB.get_database()
+    database = sqlite3.connect(db_file)
+    cursor = database.cursor()
+    cursor.execute("INSERT INTO reminders VALUES (?, ?, ?)", (conv_id, message, time))
+    database.commit()
+    database.close()
+
+
+def get_all_reminders(conv_id=None):
+    db_file = UtilDB.get_database()
+    database = sqlite3.connect(db_file)
+    cursor = database.cursor()
+    if not conv_id:
+        return cursor.execute("SELECT * FROM reminders").fetchall()
+    else:
+        return cursor.execute("SELECT * FROM reminders WHERE conv_id = ?", (conv_id,)).fetchall()
+
+
+def delete_reminder(conv_id, message, time):
+    db_file = UtilDB.get_database()
+    database = sqlite3.connect(db_file)
+    cursor = database.cursor()
+    timestamp = datetime.now() + timedelta(seconds=time)
+    # I have an issue with the timestamps not being exact. I need a better way of being exact.
+    # This should work for most cases, but will fail under some circumstances.
+    cursor.execute(
+        'DELETE FROM reminders WHERE conv_id = ? AND message = ? AND timestamp - ? <= 20',
+        (conv_id, message, timestamp))
+    database.commit()
+    database.close()
