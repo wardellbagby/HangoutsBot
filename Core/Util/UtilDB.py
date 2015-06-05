@@ -25,7 +25,7 @@ def _init_tables():
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='reminders'")
         if not cursor.fetchone():
             cursor.execute(
-                "CREATE TABLE reminders (user_id text,  conv_id text, message text, timestamp integer, private boolean)")
+                "CREATE TABLE reminders (conv_id text, message text, timestamp integer)")
 
         database.commit()
         cursor.close()
@@ -82,6 +82,9 @@ def set_value_by_user_id(table, user_id, keyword, value, conv_id=None):
         database.commit()
     else:
         raise DatabaseNotInitializedError()
+
+def get_database():
+    return _database_file
 
 
 

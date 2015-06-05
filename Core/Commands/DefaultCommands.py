@@ -1,25 +1,28 @@
 import asyncio
-import html
 import json
-import os
-import random
-import threading
 from urllib import parse
 from urllib import request
 import re
+from urllib.error import HTTPError, URLError
 
 from bs4 import BeautifulSoup
 import hangups
 from hangups import schemas
 from hangups.ui.utils import get_conv_name
+nltk_installed = True
+try:
+    from Libraries import summarize
+except ImportError:
+    nltk_installed = False
 
 from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
 from Core.Commands.Dispatcher import DispatcherSingleton
 from Core.Util import UtilBot
 
-
 clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_session()
 last_recorded, last_recorder = None, None
+
+
 
 
 @DispatcherSingleton.register_unknown
@@ -57,28 +60,6 @@ def help(bot, event, command=None, *args):
                 func(bot, event, *args)
         else:
             bot.send_message("The command {} is not registered.".format(command))
-
-
-@DispatcherSingleton.register
-def devmode(bot, event, *args):
-    """
-    **Development Mode:**
-    Usage: /devmode <on|off>
-    Purpose: When development mode is on, all outputted text will go to the Python console instead of the Hangouts chat.
-    """
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Development Mode', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /devmode <on|off>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment(
-                        'Purpose: When development mode is on, all outputted text will go to the Python console instead of the Hangouts chat.')]
-        bot.send_message_segments(event.conv, segments)
-    else:
-        if ''.join(args) == "on":
-            bot.dev = True
-        else:
-            bot.dev = False
 
 
 @DispatcherSingleton.register
@@ -217,14 +198,27 @@ def goog(bot, event, *args):
           % query
     headers = {
         'User-agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'}
-    req = request.Request(url, None, headers)
-    resp = request.urlopen(req)
-    soup = BeautifulSoup(resp)
 
-    bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Result:', is_bold=True),
-                                           hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                                           hangups.ChatMessageSegment(soup.title.string, hangups.SegmentType.LINK,
-                                                                      link_target=url)])
+    @asyncio.coroutine
+    def send_goog_message(bot, event, url, query=None, headers=None):
+        req = request.Request(url, None, headers)
+        try:
+            resp = request.urlopen(req, timeout=10)
+        except HTTPError:
+            segments = [hangups.ChatMessageSegment('Result:', is_bold=True),
+                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+            if query:
+                segments.append(hangups.ChatMessageSegment(query, hangups.SegmentType.LINK, link_target=url))
+
+            bot.send_message_segments(event.conv, segments)
+            return
+        soup = BeautifulSoup(resp)
+        bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Result:', is_bold=True),
+                                               hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                                               hangups.ChatMessageSegment(soup.title.string, hangups.SegmentType.LINK,
+                                                                          link_target=url)])
+
+    yield from send_goog_message(bot, event, url, search_terms, headers)
 
 
 @DispatcherSingleton.register
@@ -427,8 +421,7 @@ def status(bot, event, *args):
     """
     **Status:**
     Usage: /status
-    Usage: /status <name>
-    Purpose: Shows current bot or user status.
+    Purpose: Shows current bot status.
     """
 
     segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
@@ -730,19 +723,12 @@ def karma(bot, event, name=None, *args):
 @DispatcherSingleton.register_aliases(["img"])
 def image(bot, event, *args):
     query = ' '.join(args)
-    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&' \
+    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&' \
           + parse.urlencode({'q': query})
 
     resp = request.urlopen(url)
     image_json = json.loads(resp.read().decode())
     url = image_json['responseData']['results'][0]['unescapedUrl']
-
-    @asyncio.coroutine
-    def send_image(bot, event, url):
-        image_id = yield from bot.upload_image(url)
-        bot.send_message_segments(event.conv, [
-            hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
-                                  image_id=image_id)
 
     yield from send_image(bot, event, url)
 
@@ -750,18 +736,68 @@ def image(bot, event, *args):
 @DispatcherSingleton.register
 def gif(bot, event, *args):
     query = ' '.join(args)
-    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgtype=animated&' \
+    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&imgtype=animated&' \
           + parse.urlencode({'q': query})
     resp = request.urlopen(url)
     image_json = json.loads(resp.read().decode())
     url = image_json['responseData']['results'][0]['unescapedUrl']
 
-    @asyncio.coroutine
-    def send_image(bot, event, url):
-        image_id = yield from bot.upload_image(url)
-        bot.send_message_segments(event.conv, [
-            hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
-                                  image_id=image_id)
-
     yield from send_image(bot, event, url)
 
+
+@asyncio.coroutine
+def send_image(bot, event, url):
+    try:
+        image_id = yield from bot.upload_image(url)
+    except HTTPError:
+        bot.send_message(event.conv, "Error attempting to upload image.")
+        return
+    bot.send_message_segments(event.conv, [
+        hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
+                              image_id=image_id)
+
+
+@DispatcherSingleton.register_hidden
+def _url_handle(bot, event, url):
+    if "googleusercontent" in url or "youtube" in url or "youtu.be" in url:  # Ignore links Hangouts will handle itself.
+        yield from bot._client.settyping(event.conv_id, hangups.TypingStatus.STOPPED)
+        return
+
+    if "imgur" in url and url.endswith('gifv'):
+        url = url.replace("gifv", "gif")
+
+    if (url.endswith('gif') or url.endswith('jpg') or url.endswith("jpeg") or url.endswith('png') or url.endswith(
+            "bmp")):
+        yield from send_image(bot, event, url)
+        return
+
+    @asyncio.coroutine
+    def send_link_preview(bot, event, url):
+        if not url.startswith("http://") and not url.startswith("https://"):
+            url = "http://" + url
+
+        try:
+            summary = summarize.summarize_page(url)
+            if len(summary.summaries) < 3:
+                return
+            if len(summary.summaries) > 3:
+                summary = " ".join(summary.summaries[:3])
+            else:
+                summary = " ".join(summary.summaries)
+        except HTTPError as e:
+            segments = [hangups.ChatMessageSegment('"{}" gave HTTP error code {}.'.format(url, e.code))]
+            bot.send_message_segments(event.conv, segments)
+            return
+        except (ValueError, URLError):
+            yield from bot._client.settyping(event.conv_id, hangups.TypingStatus.STOPPED)
+            return
+
+        bot.send_message_segments(event.conv, [
+            hangups.ChatMessageSegment(summary),
+            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+            hangups.ChatMessageSegment(url, hangups.SegmentType.LINK, link_target=url)])
+
+        # TODO Possibly add in Facebook-esque image sending, too.
+    if nltk_installed:
+        yield from send_link_preview(bot, event, url)

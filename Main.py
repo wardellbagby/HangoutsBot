@@ -1,15 +1,16 @@
-import argparse
 import os
-
-from Core.Bot import HangoutsBot
 
 base_config = '''{
   "admins": ["YOUR-USER-ID-HERE"],
   "autoreplies_enabled": true,
   "autoreplies": [
-    [["^@[\\w\\s]+\\++$"],"/karma {}"],
-    [["^@[\\w\\s]+-+$"],"/karma {}"],
-    [["bot", "robot", "Yo"], "/think {}"]
+    [["^@[\\\\w\\s]+\\\\++$"],"/karma {}"],
+    [["^@[\\\\w\\\\s]+-+$"],"/karma {}"],
+    [["bot", "robot", "Yo"], "/think {}"],
+    [["^(https?:\\\\/\\\\/)?([\\\\da-z\\\\.-]+)\\\\.([a-z\\\\.]{2,6})([\\\\/\\\\w \\\\.-]*)*\\\\/?$"],"/_url_handle {}"],
+    [["^@[\\\\w\\\\s]+$"], "/karma {}"],
+    [["^@[\\\\w\\\\s]+\\\\++$"], "/_karma {}"],
+    [["^@[\\\\w\\\\s]+-+$"], "/_karma {}",
   ],
   "development_mode": false,
   "commands_admin": ["hangouts", "reload", "quit", "config", "block", "record clear"],
@@ -32,16 +33,28 @@ base_config = '''{
 
 # TODO Factor in an arg parser.
 if __name__ == "__main__":
+    try:
+        import nltk
 
-    # This commands auto updates the project. Please have Git installed and in your PATH variable on Windows.
-    os.system("git pull")
+        nltk.data.path.append("nltk_data")  # For Bots that have installed the nltk data in the root project dir.
+
+        # Keeps our words up to date for the URL summarizer.
+        nltk.download("stopwords")
+        nltk.download("punkt")
+    except ImportError:
+        print("nltk package is not installed. URL Summarizer will not work.")
+
+    command_char = '/'
+
+    from Core.Bot import HangoutsBot
+
     if os.path.isfile("config.json"):
-        HangoutsBot("cookies.txt", "config.json", command_char='/').run()
+        HangoutsBot("cookies.txt", "config.json", command_char=command_char).run()
     elif os.path.isfile("Core" + os.sep + "config.json"):
-        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json", command_char='/').run()
+        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json", command_char=command_char).run()
     else:
         print("Error finding config.json file. Creating default config file at Core/config.json")
         config_file = open("Core" + os.sep + "config.json", 'w+')
         config_file.writelines(base_config)
         config_file.close()
-        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json", command_char='/').run()
+        HangoutsBot("Core" + os.sep + "cookies.txt", "Core" + os.sep + "config.json", command_char=command_char).run()

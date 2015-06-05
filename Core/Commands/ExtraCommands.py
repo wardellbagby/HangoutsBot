@@ -9,6 +9,7 @@ import threading
 from urllib import parse, request
 from bs4 import BeautifulSoup
 from dateutil import parser
+import dateutil
 import hangups
 import re
 import requests
@@ -17,8 +18,7 @@ from Core.Commands.Dispatcher import DispatcherSingleton
 from Core.Util import UtilBot
 from Libraries import Genius
 
-
-reminders = []
+currently_running_reminders = []
 
 
 @DispatcherSingleton.register
@@ -83,7 +83,25 @@ def udefine(bot, event, *args):
                 bot.send_message_segments(event.conv, segments)
 
 
-@DispatcherSingleton.register
+# Function for sending reminders to a chat.
+def send_reminder(bot, conv, reminder_time, reminder_text, loop):
+    asyncio.set_event_loop(loop)
+    bot.send_message(conv, "Reminder: " + reminder_text)
+    UtilBot.delete_reminder(conv.id_, reminder_text, reminder_time)
+
+
+def _reminder_on_connect_listener(bot):
+    reminders = UtilBot.get_all_reminders()
+    for reminder in reminders:
+        reminder_time = dateutil.parser.parse(reminder[2])
+        reminder_interval = (reminder_time - datetime.now()).seconds
+        conv = bot._conv_list.get(reminder[0])
+        reminder_timer = threading.Timer(reminder_interval, send_reminder,
+                                         [bot, conv, reminder_interval, reminder[1], asyncio.get_event_loop()])
+        reminder_timer.start()
+
+
+@DispatcherSingleton.register_extras(on_connect_listener=_reminder_on_connect_listener)
 def remind(bot, event, *args):
     # TODO Implement a private chat feature. Have reminders save across reboots?
     """
@@ -97,21 +115,20 @@ def remind(bot, event, *args):
     if len(args) == 0:
         segments = [hangups.ChatMessageSegment('Reminders:', is_bold=True),
                     hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+        reminders = UtilBot.get_all_reminders(event.conv_id)
         if len(reminders) > 0:
             for x in range(0, len(reminders)):
                 reminder = reminders[x]
-                reminder_timer = reminder[0]
                 reminder_text = reminder[1]
-                reminder_set_time = reminder[2]
-                date_to_post = reminder_set_time + timedelta(seconds=reminder_timer.interval)
+                date_to_post = dateutil.parser.parse(reminder[2])
                 segments.append(
                     hangups.ChatMessageSegment(
                         str(x + 1) + ' - ' + date_to_post.strftime('%m/%d/%y %I:%M%p') + ' : ' + reminder_text))
                 segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
             segments.pop()
             bot.send_message_segments(event.conv, segments)
-        else:
-            bot.send_message(event.conv, "No reminders are currently set.")
+        if len(segments) <= 2:
+            bot.send_message(event.conv, "No reminders set for this chat.")
         return
 
     # Delete a reminder
@@ -122,29 +139,29 @@ def remind(bot, event, *args):
         except ValueError:
             bot.send_message(event.conv, 'Invalid integer: ' + args[1])
             return
+        reminders = UtilBot.get_all_reminders(event.conv_id)
+        reminder_to_delete_text = None
         if x in range(0, len(reminders)):
-            reminder_to_remove_text = reminders[x][1]
-            reminders[x][0].cancel()
-            reminders.remove(reminders[x])
-            bot.send_message(event.conv, 'Removed reminder: ' + reminder_to_remove_text)
+            to_delete_reminder = reminders[x]
+            for running_reminder in currently_running_reminders:
+                if running_reminder[1] == to_delete_reminder:
+                    running_reminder[0].cancel()
+        if reminder_to_delete_text:
+            bot.send_message(event.conv, 'Removed reminder: ' + str(reminder_to_delete_text))
         else:
-            bot.send_message(event.conv, 'Invalid integer: ' + str(x + 1))
+            bot.send_message(event.conv, 'The reminder chosen is not currently running.')
         return
-
-    # Function for sending reminders to a chat.
-    def send_reminder(bot, conv, reminder_time, reminder_text, loop):
-        asyncio.set_event_loop(loop)
-        bot.send_message(conv, reminder_text)
-        for reminder in reminders:
-            if reminder[0].interval == reminder_time and reminder[1] == reminder_text:
-                reminders.remove(reminder)
 
     # Set a new reminder
     args = list(args)
     reminder_text = ' '.join(args)
-    result = parsedatetime.nlp(reminder_text)
+    c = parsedatetime.Calendar()
+    result = c.nlp(reminder_text)
+    if result is None:
+        bot.send_message(event.conv, "Couldn't parse a valid date from {}'s message.".format(event.user.full_name))
+        return
     reminder_time = result[0][0]
-    reminder_text.replace(result[0][-1], '')
+    reminder_text = reminder_text.replace(result[0][-1], '')
     if reminder_text.strip() == '':
         bot.send_message(event.conv, 'No reminder text set.')
         return
@@ -157,8 +174,9 @@ def remind(bot, event, *args):
 
     reminder_timer = threading.Timer(reminder_interval, send_reminder,
                                      [bot, event.conv, reminder_interval, reminder_text, asyncio.get_event_loop()])
-    reminders.append((reminder_timer, reminder_text, current_time))
+    UtilBot.add_reminder(event.conv_id, reminder_text, reminder_time)
     reminder_timer.start()
+    currently_running_reminders.append((reminder_timer, (event.conv_id, reminder_text, reminder_time)))
     bot.send_message(event.conv, "Reminder set for " + reminder_time.strftime('%B %d, %Y %I:%M%p'))
 
 
@@ -256,7 +274,7 @@ def record(bot, event, *args):
         file.seek(0)
         segments = [hangups.ChatMessageSegment(
             'On the day of ' + datetime.date.today().strftime('%B %d, %Y') + ':', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
         for line in file:
             segments.append(
                 hangups.ChatMessageSegment(line))
@@ -452,7 +470,7 @@ def quote(bot, event, *args):
                 fetch = 1
             bot.send_message(event.conv, "\"" +
                              children[fetch - 1].quote.text + "\"" + ' - ' + children[
-                fetch - 1].author.text + ' [' + str(
+                                 fetch - 1].author.text + ' [' + str(
                 fetch) + ' of ' + str(numQuotes) + ']')
         else:
             bot.send_message(event.conv, "\"" + soup.quote.text + "\"" + ' -' + soup.author.text)
