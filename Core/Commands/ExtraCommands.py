@@ -170,7 +170,7 @@ def remind(bot, event, *args):
     if reminder_time < current_time:
         bot.send_message("Invalid Date: {}".format(reminder_time.strftime('%B %d, %Y %I:%M%p')))
 
-    reminder_interval = (reminder_time - current_time).seconds
+    reminder_interval = (reminder_time - current_time).total_seconds()
 
     reminder_timer = threading.Timer(reminder_interval, send_reminder,
                                      [bot, event.conv, reminder_interval, reminder_text, asyncio.get_event_loop()])
