@@ -4,6 +4,7 @@ from urllib import parse
 import urllib
 import uuid
 import xml.dom.minidom
+from http import cookiejar
 
 """
     chatterbotapi
@@ -96,7 +97,10 @@ class _CleverbotSession(ChatterBotSession):
         data_digest = hashlib.md5(data_to_digest.encode('utf-8')).hexdigest()
         data = data + '&icognocheck=' + data_digest
         data = data.encode('utf-8')
-        url_response = urllib.request.urlopen(self.bot.url, data)
+        cj = cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+        opener.open('http://www.cleverbot.com')
+        url_response = opener.open(self.bot.url, data)
         response = url_response.read()
         response_values = response.decode('utf-8').split('\r')
         # self.vars['??'] = _utils_string_at_index(response_values, 0)
