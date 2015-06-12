@@ -13,6 +13,67 @@ from Core.Commands import *  # Makes sure that all commands in the Command direc
 from Core.Util.UtilBot import is_user_blocked, check_if_can_run_command
 
 
+# In order to facilitate turning off certain autoreplies in chat, we need to keep them in memory.
+class AutoReply(object):
+    def __init__(self, triggers, response, conv_id=None, muted=None, label=None):
+        self.triggers = triggers
+        self.response = response
+        self.conv_id = conv_id
+
+        # For global autoreplies, this is a dictionary. Otherwise, it's just a boolean.
+        if conv_id is not None:
+            self.muted = False if muted is None else True
+        else:
+            if isinstance(muted, dict):
+                self.muted = muted
+            else:
+                self.muted = {}
+        if not label:
+            self.label = " / ".join(triggers)
+
+    def is_triggered(self, text, conv_id=None):
+        if self.is_muted(conv_id):
+            return False
+        if self.conv_id is not None and conv_id != self.conv_id:
+            return False
+        for trigger in self.triggers:
+            if trigger == '*':  # * is the wildcard for any text.
+                return True
+
+            # This is a regex based trigger, so we have to match based on it.
+            if trigger[0] == '^' and trigger[-1] == '$':
+                if re.match(trigger, text):
+                    return True
+                continue
+            else:
+                escaped = trigger.encode('unicode-escape').decode()
+                if trigger != escaped:
+                    if trigger in text:
+                        return True
+                # For word/phrased based triggers, we need to put a word boundary between the words we check for.
+                if re.search('\\b' + trigger + '\\b', text, re.IGNORECASE):
+                    return True
+        return False
+
+    def is_command(self, command_char):
+        return self.response.startswith(command_char)
+
+    def is_muted(self, conv_id=None):
+        if conv_id and isinstance(self.muted, dict):
+            try:
+                return self.muted[conv_id]
+            except KeyError:
+                self.muted[conv_id] = False
+                return False
+        return self.muted
+
+    def set_muted(self, muted, conv_id=None):
+        if isinstance(self.muted, dict) and conv_id is not None:
+            self.muted[conv_id] = muted
+        else:
+            self.muted = muted
+
+
 class MessageHandler(object):
     """Handle Hangups conversation events"""
 
@@ -21,20 +82,25 @@ class MessageHandler(object):
         self.command_char = command_char
         self.command_cache = deque(maxlen=20)
         self.autoreply_cache = deque(maxlen=20)
+        self.autoreply_list = []
         self.TIME_OUT = 1
+
+        # Run on_connect_listeners
         for listener in DispatcherSingleton.on_connect_listeners:
             listener(bot)
 
-    def word_in_text(self, word, text):
-        """Return True if word is in text"""
+        # Queue up autoreplies in memory.
 
-        if word[0] == '^' and word[-1] == '$':
-            return re.match(word, text)
-        else:
-            escaped = word.encode('unicode-escape').decode()
-            if word != escaped:
-                return word in text
-            return True if re.search('\\b' + word + '\\b', text, re.IGNORECASE) else False
+        default_autoreplies_list = self.bot.get_config_suboption(None, 'autoreplies')
+        if default_autoreplies_list:
+            for triggers, response in default_autoreplies_list:
+                self.autoreply_list.append(AutoReply(triggers, response, None))
+
+        for conv in self.bot._conv_list.get_all():
+            autoreplies_list = self.bot.get_config_suboption(conv.id_, 'autoreplies')
+            if autoreplies_list != default_autoreplies_list:
+                for triggers, response in autoreplies_list:
+                    self.autoreply_list.append(AutoReply(triggers, response, conv.conv_id))
 
     @asyncio.coroutine
     def handle(self, event):
@@ -150,23 +216,20 @@ class MessageHandler(object):
                 self.bot.send_message(event.conv, "Ignored duplicate command from %s." % event.user.full_name)
                 return
 
-        autoreplies_list = self.bot.get_config_suboption(event.conv_id, 'autoreplies')
-        if autoreplies_list:
-            for kwds, sentence in autoreplies_list:
-                for kw in kwds:
-                    if self.word_in_text(kw, event.text) or kw == "*":
-                        if sentence[0] == self.command_char:
-                            yield from self.bot._client.settyping(event.conv_id)
-                            event.text = sentence.format(event.text)
-
-                            # Cheating so auto-replies come through as System user.
-                            if not event.user.is_self:
-                                event.user.is_self = True
-                                yield from self.handle_command(event)
-                                event.user.is_self = False
-                            else:
-                                yield from self.handle_command(event)
-                            return
-                        else:
-                            self.autoreply_cache.append((event.user_id[0], event.text, datetime.now()))
-                            self.bot.send_message(event.conv, sentence)
+        for autoreply in self.autoreply_list:
+            if autoreply.is_triggered(event.text, event.conv_id):
+                yield from self.bot._client.settyping(event.conv_id)
+                # Replaces the "{}" in the response with the text entered (generally for commands)
+                event.text = autoreply.response.format(event.text)
+                if autoreply.is_command(self.command_char):
+                    # Cheating so auto-replies come through as System user.
+                    if not event.user.is_self:
+                        event.user.is_self = True
+                        yield from self.handle_command(event)
+                        event.user.is_self = False
+                    else:
+                        yield from self.handle_command(event)
+                        return
+                else:
+                    self.autoreply_cache.append((event.user_id[0], event.text, datetime.now()))
+                    self.bot.send_message(event.conv, autoreply.response)

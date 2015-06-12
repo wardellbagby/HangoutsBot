@@ -53,6 +53,10 @@ class CommandDispatcher(object):
                         "Command {} is not registered. Furthermore, no command found to handle unknown commands.".format
                         (command))
 
+        # For commands that want to know what name they were called under.
+        if 'alias' in func.__code__.co_varnames:
+            kwds["alias"] = command
+
         func = asyncio.coroutine(func)
 
         args = list(args[1:])

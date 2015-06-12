@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import hangups
 from hangups import schemas
 from hangups.ui.utils import get_conv_name
+
 nltk_installed = True
 try:
     from Libraries import summarize
@@ -21,8 +22,6 @@ from Core.Util import UtilBot
 
 clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_session()
 last_recorded, last_recorder = None, None
-
-
 
 
 @DispatcherSingleton.register_unknown
@@ -306,13 +305,14 @@ def hangouts(bot, event, *args):
     segments = [hangups.ChatMessageSegment('Currently In These Hangouts:', is_bold=True),
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
     for c in bot.list_conversations():
-        s = '{} [commands: {:d}, forwarding: {:d}, autoreplies: {:d}]'.format(get_conv_name(c, truncate=True),
-                                                                              bot.get_config_suboption(c.id_,
-                                                                                                       'commands_enabled'),
-                                                                              bot.get_config_suboption(c.id_,
-                                                                                                       'forwarding_enabled'),
-                                                                              bot.get_config_suboption(c.id_,
-                                                                                                       'autoreplies_enabled'))
+        s = '{} [commands: {:d}, forwarding: {:d}, autoreplies: {:d}]' \
+            .format(get_conv_name(c, truncate=True),
+                    bot.get_config_suboption(c.id_,
+                                             'commands_enabled'),
+                    bot.get_config_suboption(c.id_,
+                                             'forwarding_enabled'),
+                    bot.get_config_suboption(c.id_,
+                                             'autoreplies_enabled'))
         segments.append(hangups.ChatMessageSegment(s))
         segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
 
@@ -326,7 +326,17 @@ def rename(bot, event, *args):
     Usage: /rename <new title>
     Purpose: Changes the chat title of the room.
     """
-    yield from bot._client.setchatname(event.conv_id, ' '.join(args))
+    if len(args) == 0:
+        return
+    if args[0] == 'append':
+        curr_name = event.conv.name.strip()
+        if curr_name is None:
+            yield from bot._client.setchatname(event.conv_id, ' '.join(args))
+            return
+        new_name = curr_name + ' ' + (' '.join(args)).strip()
+        yield from bot._client.setchatname(event.conv_id, new_name)
+    else:
+        yield from bot._client.setchatname(event.conv_id, ' '.join(args))
 
 
 @DispatcherSingleton.register
@@ -378,42 +388,66 @@ def clear(bot, event, *args):
     bot.send_message_segments(event.conv, segments)
 
 
-@DispatcherSingleton.register
-def mute(bot, event, *args):
+@DispatcherSingleton.register_aliases(["unmute"])
+def mute(bot, event, *args, alias="mute"):
     """
     **Mute:**
     Usage: /mute
     Purposes: Mutes all autoreplies.
     """
-    try:
-        bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = False
-    except KeyError:
-        bot.config['conversation'][event.conv_id] = {}
-        bot.config['conversation'][event.conv_id]['autoreplies_enabled'] = False
-    bot.config.save()
+    new_mute_value = False
+    if alias == "unmute":
+        new_mute_value = True
 
-
-@DispatcherSingleton.register
-def unmute(bot, event, *args):
-    """
-    **Unmute:**
-    Usage: /unmute
-    Purpose: Unmutes all autoreplies.
-    """
-    if ''.join(args) == '?':
-        segments = [hangups.ChatMessageSegment('Unmute', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Usage: /unmute'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                    hangups.ChatMessageSegment('Purpose: Unmutes all non-command replies.')]
-        bot.send_message_segments(event.conv, segments)
+    if len(args) == 0:
+        try:
+            bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = new_mute_value
+        except KeyError:
+            bot.config['conversation'][event.conv_id] = {}
+            bot.config['conversation'][event.conv_id]['autoreplies_enabled'] = new_mute_value
+        bot.config.save()
     else:
         try:
-            bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
-        except KeyError:
-            bot.config['conversations'][event.conv_id] = {}
-            bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
-        bot.config.save()
+            index = int(args[0])
+            index -= 1  # Autoreplies are shown 1-starting, but the array is 0-starting.
+        except ValueError:
+            bot.send_message(event.conv, "Unable to parse {} as an index.".format(args[0]))
+            return
+        autoreplies = UtilBot.get_autoreplies(bot, event.conv_id)
+        if index not in range(0, len(autoreplies)):
+            bot.send_message(event.conv, "{} is not a valid index for an autoreply.".format(index))
+            return
+
+        # The new_mute_value has to be reversed in this instance.
+        autoreplies[index].set_muted(not new_mute_value, event.conv_id)
+
+
+# @DispatcherSingleton.register
+# def unmute(bot, event, *args):
+#     """
+#     **Unmute:**
+#     Usage: /unmute
+#     Purpose: Unmutes all autoreplies.
+#     """
+#     if len(args) == 0:
+#         try:
+#             bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+#         except KeyError:
+#             bot.config['conversations'][event.conv_id] = {}
+#             bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
+#         bot.config.save()
+#     else:
+#         index = 1
+#         try:
+#             index = int(args[0])
+#         except ValueError:
+#             bot.send_message(event.conv, "Unable to parse {} as an index.".format(args[0]))
+#             return
+#         autoreplies = UtilBot.get_autoreplies(bot, event.conv_id)
+#         if index not in range(0, len(autoreplies)):
+#             bot.send_message(event.conv, "{} is not a valid index for an autoreply.".format(index))
+#             return
+#         autoreplies[index].set_muted(False, event.conv_id)
 
 
 @DispatcherSingleton.register
@@ -425,10 +459,19 @@ def status(bot, event, *args):
     """
 
     segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment(
-                    'Autoreplies: ' + ('Enabled' if bot.config['conversations'][event.conv_id][
-                        'autoreplies_enabled'] else 'Disabled'))]
+                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+
+    autoreplies_enabled = bot.config['conversations'][event.conv_id]['autoreplies_enabled']
+    if not autoreplies_enabled:
+        segments.append(hangups.ChatMessageSegment('Autoreplies: Disabled'))
+    else:
+        autoreplies = UtilBot.get_autoreplies(bot, event.conv_id)
+        for i in range(0, len(autoreplies)):
+            reply = autoreplies[i]
+            segments.append(hangups.ChatMessageSegment(
+                '{} - {}: {}'.format(i + 1, reply.label, 'Disabled' if reply.is_muted(event.conv_id) else 'Enabled')))
+            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+        segments.pop()
     bot.send_message_segments(event.conv, segments)
 
 
@@ -721,7 +764,7 @@ def karma(bot, event, name=None, *args):
 
 
 @DispatcherSingleton.register_aliases(["img"])
-def image(bot, event, *args):
+def image(bot, event, alias="image", *args):
     query = ' '.join(args)
     url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&' \
           + parse.urlencode({'q': query})
@@ -799,5 +842,6 @@ def _url_handle(bot, event, url):
             hangups.ChatMessageSegment(url, hangups.SegmentType.LINK, link_target=url)])
 
         # TODO Possibly add in Facebook-esque image sending, too.
+
     if nltk_installed:
         yield from send_link_preview(bot, event, url)

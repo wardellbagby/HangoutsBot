@@ -32,7 +32,6 @@ _last_recorded = {}
 _url_regex = r"^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$"
 
 
-
 def is_user_conv_admin(bot, user_info, conv_id=None):
     if isinstance(user_info, hangups.ConversationEvent):
         user_id = user_info.user_id
@@ -77,6 +76,8 @@ def is_user_admin(bot, user_info, conv_id=None):
 
 
 def check_if_can_run_command(bot, event, command):
+    if event.user.is_self:  # The bot (or people masquerading as the bot) can run all commands.
+        return True
     commands_admin_list = bot.get_config_suboption(event.conv_id, 'commands_admin')
     commands_conv_admin_list = bot.get_config_suboption(event.conv_id, 'commands_conversation_admin')
     admins_list = bot.get_config_suboption(event.conv_id, 'admins')
@@ -609,3 +610,8 @@ def delete_reminder(conv_id, message, time):
         (conv_id, message, timestamp))
     database.commit()
     database.close()
+
+
+def get_autoreplies(bot, conv_id):
+    autoreplies = bot._message_handler.autoreply_list
+    return [reply for reply in autoreplies if reply.conv_id == conv_id or reply.conv_id is None]
