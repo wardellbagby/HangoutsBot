@@ -3,75 +3,14 @@ from datetime import datetime
 import logging
 import shlex
 import asyncio
-import re
 
 import hangups
 
-from Core.Commands.Dispatcher import DispatcherSingleton
-from Core.Commands import *  # Makes sure that all commands in the Command directory are imported and registered.
-
+from Core.Dispatcher import DispatcherSingleton
 from Core.Util.UtilBot import is_user_blocked, check_if_can_run_command
 
-
-# In order to facilitate turning off certain autoreplies in chat, we need to keep them in memory.
-class AutoReply(object):
-    def __init__(self, triggers, response, conv_id=None, muted=None, label=None):
-        self.triggers = triggers
-        self.response = response
-        self.conv_id = conv_id
-
-        # For global autoreplies, this is a dictionary. Otherwise, it's just a boolean.
-        if conv_id is not None:
-            self.muted = False if muted is None else True
-        else:
-            if isinstance(muted, dict):
-                self.muted = muted
-            else:
-                self.muted = {}
-        if not label:
-            self.label = " / ".join(triggers)
-
-    def is_triggered(self, text, conv_id=None):
-        if self.is_muted(conv_id):
-            return False
-        if self.conv_id is not None and conv_id != self.conv_id:
-            return False
-        for trigger in self.triggers:
-            if trigger == '*':  # * is the wildcard for any text.
-                return True
-
-            # This is a regex based trigger, so we have to match based on it.
-            if trigger[0] == '^' and trigger[-1] == '$':
-                if re.match(trigger, text):
-                    return True
-                continue
-            else:
-                escaped = trigger.encode('unicode-escape').decode()
-                if trigger != escaped:
-                    if trigger in text:
-                        return True
-                # For word/phrased based triggers, we need to put a word boundary between the words we check for.
-                if re.search('\\b' + trigger + '\\b', text, re.IGNORECASE):
-                    return True
-        return False
-
-    def is_command(self, command_char):
-        return self.response.startswith(command_char)
-
-    def is_muted(self, conv_id=None):
-        if conv_id and isinstance(self.muted, dict):
-            try:
-                return self.muted[conv_id]
-            except KeyError:
-                self.muted[conv_id] = False
-                return False
-        return self.muted
-
-    def set_muted(self, muted, conv_id=None):
-        if isinstance(self.muted, dict) and conv_id is not None:
-            self.muted[conv_id] = muted
-        else:
-            self.muted = muted
+from Core.Commands import *  # Makes sure that all commands in the Command directory are imported and registered.
+from Core.Autoreplies import *  # Makes sure that all autoreplies in the Autoreplies directory are imported and registered.
 
 
 class MessageHandler(object):
@@ -82,25 +21,37 @@ class MessageHandler(object):
         self.command_char = command_char
         self.command_cache = deque(maxlen=20)
         self.autoreply_cache = deque(maxlen=20)
-        self.autoreply_list = []
+        self.autoreply_list = set()
         self.TIME_OUT = 1
 
         # Run on_connect_listeners
         for listener in DispatcherSingleton.on_connect_listeners:
             listener(bot)
 
+        # MessageHandler should keep track of the replies itself, but it should not be exposed, so we use the Dispatcher
+        # as the fall guy.
+        for reply in DispatcherSingleton.autoreplies:
+            self.autoreply_list.add(reply)
+
         # Queue up autoreplies in memory.
 
         default_autoreplies_list = self.bot.get_config_suboption(None, 'autoreplies')
         if default_autoreplies_list:
             for triggers, response in default_autoreplies_list:
-                self.autoreply_list.append(AutoReply(triggers, response, None))
+                self.autoreply_list.add(AutoReply(triggers, response, None))
 
         for conv in self.bot._conv_list.get_all():
-            autoreplies_list = self.bot.get_config_suboption(conv.id_, 'autoreplies')
+            try:
+                autoreplies_list = bot.config['conversations'][conv.id_]["autoreplies"]
+            except (KeyError, TypeError):
+                autoreplies_list = default_autoreplies_list  # This is the case that a conv didn't set any autoreplies
+
             if autoreplies_list != default_autoreplies_list:
-                for triggers, response in autoreplies_list:
-                    self.autoreply_list.append(AutoReply(triggers, response, conv.id_))
+                if len(autoreplies_list) == 0:
+                    self.autoreply_list.add(NullAutoReply([], None, conv.id_))
+                else:
+                    for triggers, response in autoreplies_list:
+                        self.autoreply_list.add(AutoReply(triggers, response, conv.id_))
 
     @asyncio.coroutine
     def handle(self, event):

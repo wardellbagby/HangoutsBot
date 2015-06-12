@@ -15,8 +15,8 @@ from urllib.request import FancyURLopener
 import hangups
 from hangups.ui.utils import get_conv_name
 from requests import HTTPError
-from Core.Commands.Dispatcher import DispatcherSingleton
 
+from Core.Dispatcher import DispatcherSingleton
 from Core.Util import ConfigDict, UtilDB
 from Core import Handlers
 

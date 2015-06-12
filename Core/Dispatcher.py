@@ -19,12 +19,13 @@ class NoCommandFoundError(Exception):
     pass
 
 
-class CommandDispatcher(object):
+class Dispatcher(object):
     def __init__(self):
         self.commands = {}
         self.hidden_commands = {}
         self.unknown_command = None
         self.on_connect_listeners = []
+        self.autoreplies = []
 
     @asyncio.coroutine
     def run(self, bot, event, bot_command_char, *args, **kwds):
@@ -126,5 +127,9 @@ class CommandDispatcher(object):
     def register_on_connect_listener(self, func):
         self.on_connect_listeners.append(func)
 
+    def register_autoreply(self, autoreply):
+        self.autoreplies.append(autoreply)
+
+
 # CommandDispatcher singleton
-DispatcherSingleton = CommandDispatcher()
+DispatcherSingleton = Dispatcher()

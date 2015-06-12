@@ -613,5 +613,17 @@ def delete_reminder(conv_id, message, time):
 
 
 def get_autoreplies(bot, conv_id):
+    from Core.Handlers import NullAutoReply
+
     autoreplies = bot._message_handler.autoreply_list
-    return [reply for reply in autoreplies if reply.conv_id == conv_id or reply.conv_id is None]
+    conv_autoreplies = [reply for reply in autoreplies if reply.conv_id == conv_id]
+
+    # For chats who set to have no auto replies, we give them none.
+    if len(conv_autoreplies) == 1 and isinstance(conv_autoreplies[0], NullAutoReply):
+        return []
+
+    # For chats who didn't set any auto replies, we give them the defaults.
+    if len(conv_autoreplies) == 0:
+        return [reply for reply in autoreplies if reply.conv_id == None]
+
+    return conv_autoreplies

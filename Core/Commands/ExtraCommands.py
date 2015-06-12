@@ -1,5 +1,5 @@
 import asyncio
-from datetime import timedelta, datetime
+from datetime import datetime
 from fractions import Fraction
 import glob
 import json
@@ -7,14 +7,16 @@ import os
 import random
 import threading
 from urllib import parse, request
+import re
+
 from bs4 import BeautifulSoup
 from dateutil import parser
 import dateutil
 import hangups
-import re
 import requests
 import parsedatetime
-from Core.Commands.Dispatcher import DispatcherSingleton
+
+from Core.Dispatcher import DispatcherSingleton
 from Core.Util import UtilBot
 from Libraries import Genius
 

@@ -17,7 +17,7 @@ except ImportError:
     nltk_installed = False
 
 from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
-from Core.Commands.Dispatcher import DispatcherSingleton
+from Core.Dispatcher import DispatcherSingleton
 from Core.Util import UtilBot
 
 clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_session()
@@ -462,10 +462,15 @@ def status(bot, event, *args):
                 hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
 
     autoreplies_enabled = bot.config['conversations'][event.conv_id]['autoreplies_enabled']
+    autoreplies = UtilBot.get_autoreplies(bot, event.conv_id)
+
+    if len(autoreplies) == 0:
+        bot.send_message(event.conv, 'No Autoreplies set for this chat.')
+        return
+
     if not autoreplies_enabled:
         segments.append(hangups.ChatMessageSegment('Autoreplies: Disabled'))
     else:
-        autoreplies = UtilBot.get_autoreplies(bot, event.conv_id)
         for i in range(0, len(autoreplies)):
             reply = autoreplies[i]
             segments.append(hangups.ChatMessageSegment(
@@ -764,7 +769,7 @@ def karma(bot, event, name=None, *args):
 
 
 @DispatcherSingleton.register_aliases(["img"])
-def image(bot, event, alias="image", *args):
+def image(bot, event, *args, alias="image"):
     query = ' '.join(args)
     url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&' \
           + parse.urlencode({'q': query})
