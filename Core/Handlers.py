@@ -100,7 +100,7 @@ class MessageHandler(object):
             autoreplies_list = self.bot.get_config_suboption(conv.id_, 'autoreplies')
             if autoreplies_list != default_autoreplies_list:
                 for triggers, response in autoreplies_list:
-                    self.autoreply_list.append(AutoReply(triggers, response, conv.conv_id))
+                    self.autoreply_list.append(AutoReply(triggers, response, conv.id_))
 
     @asyncio.coroutine
     def handle(self, event):
