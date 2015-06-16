@@ -43,10 +43,7 @@ class Dispatcher(object):
             func = self.commands[command]
         except KeyError:
             try:
-                if event.user.is_self:
-                    func = self.hidden_commands[command]
-                else:
-                    raise KeyError
+                func = self.hidden_commands[command]
             except KeyError:
                 if self.unknown_command:
                     func = self.unknown_command
