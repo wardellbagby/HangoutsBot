@@ -378,8 +378,9 @@ def clear(bot, event, *args):
 def mute(bot, event, *args, alias="mute"):
     """
     **Mute:**
-    Usage: /mute
-    Purposes: Mutes all autoreplies.
+    Usage: /mute <optional: index of autoreply to mute>
+    Usage: /unmute <optional: index of autoreply to mute>
+    Purposes: Mutes/Unmutes all/specific autoreplies.
     """
     new_mute_value = False
     if alias == "unmute":
@@ -406,34 +407,6 @@ def mute(bot, event, *args, alias="mute"):
 
         # The new_mute_value has to be reversed in this instance.
         autoreplies[index].set_muted(not new_mute_value, event.conv_id)
-
-
-# @DispatcherSingleton.register
-# def unmute(bot, event, *args):
-#     """
-#     **Unmute:**
-#     Usage: /unmute
-#     Purpose: Unmutes all autoreplies.
-#     """
-#     if len(args) == 0:
-#         try:
-#             bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
-#         except KeyError:
-#             bot.config['conversations'][event.conv_id] = {}
-#             bot.config['conversations'][event.conv_id]['autoreplies_enabled'] = True
-#         bot.config.save()
-#     else:
-#         index = 1
-#         try:
-#             index = int(args[0])
-#         except ValueError:
-#             bot.send_message(event.conv, "Unable to parse {} as an index.".format(args[0]))
-#             return
-#         autoreplies = UtilBot.get_autoreplies(bot, event.conv_id)
-#         if index not in range(0, len(autoreplies)):
-#             bot.send_message(event.conv, "{} is not a valid index for an autoreply.".format(index))
-#             return
-#         autoreplies[index].set_muted(False, event.conv_id)
 
 
 @DispatcherSingleton.register

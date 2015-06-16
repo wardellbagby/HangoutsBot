@@ -15,8 +15,6 @@ clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_ses
 
 url_regex = "^((([A-Za-z]{3,9}:(?:\\/\\/)?)(?:[\\-;:&=\\+\\$,\\w]+@)?[A-Za-z0-9\\.\\-]+|(?:www\\.|[\\-;:&=\\+\\$,\\w]+@)[A-Za-z0-9\\.\\-]+)((?:\\/[\\+~%\\/\\.\\w\\-]*)?\\??(?:[\\-\\+=&;%@\\.\\w]*)#?(?:[\\.\\!\\/\\\\w]*))?)$"
 
-DispatcherSingleton.register_autoreply_type(
-    AutoReply(["whistle", "bot", "whistlebot"], "/think {}", label="Automatic Replies"))
 DispatcherSingleton.register_autoreply_type(AutoReply(["^@[\\w\\s]+$"], "/karma {}", label="Karma Status"))
 DispatcherSingleton.register_autoreply_type(AutoReply(["^@[\\w\\s]+\\++$"], "/_karma {}", label="Karma Increasing"))
 DispatcherSingleton.register_autoreply_type(AutoReply(["^@[\\w\\s]+-+$"], "/_karma {}", label="Karma Decreasing"))
