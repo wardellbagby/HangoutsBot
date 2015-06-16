@@ -38,7 +38,13 @@ class MessageHandler(object):
         default_autoreplies_list = self.bot.get_config_suboption(None, 'autoreplies')
         if default_autoreplies_list:
             for triggers, response in default_autoreplies_list:
-                self.autoreply_list.add(AutoReply(triggers, response, None))
+                label = None
+                for trigger in triggers:
+                    if "?label=" in trigger:
+                        label = trigger[7:]
+                        triggers.remove(trigger)
+
+                self.autoreply_list.add(AutoReply(triggers, response, None, label=label))
 
         for conv in self.bot._conv_list.get_all():
             try:
@@ -170,15 +176,26 @@ class MessageHandler(object):
         for autoreply in self.autoreply_list:
             if autoreply.is_triggered(event.text, event.conv_id):
                 yield from self.bot._client.settyping(event.conv_id)
+                # If you register an autoreply with a function callback.
+                if autoreply.is_func():
+                    line_args = shlex.split(event.text, posix=False)
+
+                    i = 0
+                    while i < len(line_args):
+                        line_args[i] = line_args[i].strip()
+                        if line_args[i] == '' or line_args[i] == '':
+                            line_args.remove(line_args[i])
+                        else:
+                            i += 1
+
+                    asyncio.async(autoreply.response_func(self.bot, event, *line_args))
+                    return
+
                 # Replaces the "{}" in the response with the text entered (generally for commands)
                 event.text = autoreply.response.format(event.text)
-                if autoreply.is_command(self.command_char):
-                    # Cheating so auto-replies come through as System user.
-                    if not event.user.is_self:
-                        event.user.is_self = True
-                        yield from self.handle_command(event)
-                        event.user.is_self = False
-                    else:
+
+                # For autoreplies that call already set commands.
+                if autoreply.is_command(self.command_char):                    
                         yield from self.handle_command(event)
                         return
                 else:

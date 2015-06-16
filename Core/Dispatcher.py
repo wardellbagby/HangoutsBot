@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from Core.Autoreplies import AutoReply
 from Core.Util import UtilBot
 import traceback
 
@@ -127,9 +128,16 @@ class Dispatcher(object):
     def register_on_connect_listener(self, func):
         self.on_connect_listeners.append(func)
 
-    def register_autoreply(self, autoreply):
+    def register_autoreply_type(self, autoreply):
         self.autoreplies.append(autoreply)
 
+    def register_autoreply(self, triggers, conv_id=None, muted=False, label=None):
+        """Registers a function as an autoreply."""
+
+        def func_wrapper(func):
+            self.autoreplies.append(AutoReply(triggers, func, conv_id, muted, label))
+
+        return func_wrapper
 
 # CommandDispatcher singleton
 DispatcherSingleton = Dispatcher()

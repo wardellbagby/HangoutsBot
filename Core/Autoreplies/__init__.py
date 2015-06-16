@@ -1,6 +1,8 @@
+import asyncio
 import glob
 import os
 import re
+import types
 
 extra_replies = glob.glob("Core" + os.sep + "Autoreplies" + os.sep + "*.py")
 __all__ = [os.path.basename(f)[:-3] for f in extra_replies]
@@ -11,7 +13,10 @@ __all__.append("NullAutoReply")
 class AutoReply(object):
     def __init__(self, triggers, response, conv_id=None, muted=None, label=None):
         self.triggers = frozenset(triggers)
-        self.response = response
+        if isinstance(response, types.FunctionType):
+            self.response_func = asyncio.coroutine(response)
+        else:
+            self.response = response
         self.conv_id = conv_id
 
         # For global autoreplies, this is a dictionary. Otherwise, it's just a boolean.
@@ -34,7 +39,8 @@ class AutoReply(object):
         return not (self == other)
 
     def __hash__(self):
-        return self.triggers.__hash__() ^ self.response.__hash__() ^ self.conv_id.__hash__()
+        return self.triggers.__hash__() ^ \
+            (self.response_func.__hash__()) if self.is_func() else self.response.__hash__() ^ self.conv_id.__hash__()
 
     def is_triggered(self, text, conv_id=None):
         if self.is_muted(conv_id):
@@ -61,7 +67,14 @@ class AutoReply(object):
         return False
 
     def is_command(self, command_char):
-        return self.response.startswith(command_char)
+        return not self.is_func() and self.response.startswith(command_char)
+
+    def is_func(self):
+        try:
+            self.response_func
+        except AttributeError:
+            return False
+        return True
 
     def is_muted(self, conv_id=None):
         if conv_id and isinstance(self.muted, dict):
