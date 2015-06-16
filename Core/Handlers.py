@@ -57,7 +57,12 @@ class MessageHandler(object):
                     self.autoreply_list.add(NullAutoReply([], None, conv.id_))
                 else:
                     for triggers, response in autoreplies_list:
-                        self.autoreply_list.add(AutoReply(triggers, response, conv.id_))
+                        label = None
+                        for trigger in triggers:
+                            if "?label=" in trigger:
+                                label = trigger[7:]
+                                triggers.remove(trigger)
+                        self.autoreply_list.add(AutoReply(triggers, response, conv.id_, label=label))
 
     @asyncio.coroutine
     def handle(self, event):
@@ -195,9 +200,9 @@ class MessageHandler(object):
                 event.text = autoreply.response.format(event.text)
 
                 # For autoreplies that call already set commands.
-                if autoreply.is_command(self.command_char):                    
-                        yield from self.handle_command(event)
-                        return
+                if autoreply.is_command(self.command_char):
+                    yield from self.handle_command(event)
+                    return
                 else:
                     self.autoreply_cache.append((event.user_id[0], event.text, datetime.now()))
                     self.bot.send_message(event.conv, autoreply.response)
