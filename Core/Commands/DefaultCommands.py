@@ -662,7 +662,7 @@ def _karma(bot, event, *args):
         if username not in u.full_name.lower():
             continue
 
-        if UtilBot.is_user_abstained(event.user.id_[0]):
+        if UtilBot.is_user_abstained(u.id_[0]):
             return
 
         if u.id_ == event.user.id_:
