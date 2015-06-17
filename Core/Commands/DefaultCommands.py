@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 from urllib import parse
 from urllib import request
@@ -660,6 +661,10 @@ def _karma(bot, event, *args):
     for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
         if username not in u.full_name.lower():
             continue
+
+        if UtilBot.is_user_abstained(event.user.id_[0]):
+            return
+
         if u.id_ == event.user.id_:
             bot.send_message(event.conv, "Your Karma changes with actions upon others, not actions upon oneself.")
             return
@@ -678,12 +683,21 @@ def _karma(bot, event, *args):
 
 @DispatcherSingleton.register
 def karma(bot, event, name=None, *args):
+    if name == 'abstain':
+        curr_abstain = UtilBot.is_user_abstained(event.user.id_[0])
+        UtilBot.set_karma_abstain(event.user.id_[0], not curr_abstain)
+        yield from bot._client.settyping(event.conv_id, schemas.TypingStatus.STOPPED)
+        return
+
     if name:
         if name[0] == '@':
             name = name[1:]
         lower_name = name.lower()
         for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
             if lower_name not in u.full_name.lower():
+                continue
+
+            if UtilBot.is_user_abstained(u.id_[0]):
                 continue
 
             segments = [hangups.ChatMessageSegment('%s:' % u.full_name, is_bold=True),
@@ -695,16 +709,23 @@ def karma(bot, event, name=None, *args):
 
     else:
         karma_list = []
-        list_num = min(5, int(len(event.conv.users) / 2) + 1)
-        for u in event.conv.users:
-            karma_list.append((u.full_name, UtilBot.get_current_karma(u.id_[0])))
+        users = copy.copy(event.conv.users)
+        for u in users:
+            if not UtilBot.is_user_abstained(u.id_[0]):
+                karma_list.append((u.full_name, UtilBot.get_current_karma(u.id_[0])))
+
+        for user in users:
+            if UtilBot.is_user_abstained(user.id_[0]):
+                users.remove(user)
+
+        list_num = min(5, int(len(users) / 2) + 1)
         karma_list.sort(key=lambda x: -x[1])
         segments = [hangups.ChatMessageSegment("Karma Stats:", is_bold=True),
                     hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK),
                     hangups.ChatMessageSegment("Top:", is_italic=True),
                     hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
-        if len(event.conv.users) > 10:
-            for i in range(0, min(list_num, len(event.conv.users))):
+        if len(users) > 10:
+            for i in range(0, min(list_num, len(users))):
                 segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
                 segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
 
@@ -712,11 +733,11 @@ def karma(bot, event, name=None, *args):
             segments.append(hangups.ChatMessageSegment("Bottom:", is_italic=True))
             segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
 
-            for i in range(-1, -min(list_num, len(event.conv.users)) - 1, -1):
+            for i in range(-1, -min(list_num, len(users)) - 1, -1):
                 segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
                 segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
         else:
-            for i in range(0, len(event.conv.users)):
+            for i in range(0, len(users)):
                 segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
                 segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
 

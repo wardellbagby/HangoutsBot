@@ -579,6 +579,15 @@ def get_current_karma(user_id):
         return 0
 
 
+def set_karma_abstain(user_id, value):
+    UtilDB.set_value_by_user_id('karma', user_id, 'abstain', value, defaults=[user_id, "0", str(value)])
+
+
+def is_user_abstained(user_id):
+    result = UtilDB.get_value_by_user_id('karma', user_id)
+    return False if result is None else result[2]  # The 3rd column is the abstain column!
+
+
 def add_reminder(conv_id, message, time):
     db_file = UtilDB.get_database()
     database = sqlite3.connect(db_file)
