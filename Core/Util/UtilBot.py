@@ -567,7 +567,7 @@ def change_karma(user_id, karma):
         user_karma = user_karma[1]
     else:
         user_karma = 0
-    UtilDB.set_value_by_user_id("karma", user_id, "karma", (user_karma + karma))
+    UtilDB.set_value_by_user_id("karma", user_id, "karma", (user_karma + karma), defaults=[user_id, str(user_karma), str(False)])
     return user_karma + karma
 
 

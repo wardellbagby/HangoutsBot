@@ -15,12 +15,13 @@ from Core.Dispatcher import DispatcherSingleton
 from Core.Util import UtilBot
 
 last_recorded, last_recorder = None, None
-
+reserved_command_names = ['s', 'me']
 
 @DispatcherSingleton.register_unknown
-def unknown_command(bot, event, *args):
-    bot.send_message(event.conv,
-                     '{}: Unknown command!'.format(event.user.full_name))
+def unknown_command(bot, event, *args, alias=None):
+    if alias not in reserved_command_names:
+        bot.send_message(event.conv,
+                         '{}: Unknown command!'.format(event.user.full_name))
 
 
 @DispatcherSingleton.register
@@ -663,7 +664,7 @@ def _karma(bot, event, *args):
             continue
 
         if UtilBot.is_user_abstained(u.id_[0]):
-            return
+            continue
 
         if u.id_ == event.user.id_:
             bot.send_message(event.conv, "Your Karma changes with actions upon others, not actions upon oneself.")
