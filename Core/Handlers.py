@@ -1,10 +1,12 @@
 from collections import deque
+import copy
 from datetime import datetime
 import logging
 import shlex
 import asyncio
 
 import hangups
+from hangups import hangouts_pb2
 
 from Core.Dispatcher import DispatcherSingleton
 from Core.Util.UtilBot import is_user_blocked, check_if_can_run_command
@@ -34,7 +36,6 @@ class MessageHandler(object):
             self.autoreply_list.add(reply)
 
         # Queue up autoreplies in memory.
-
         default_autoreplies_list = self.bot.get_config_suboption(None, 'autoreplies')
         if default_autoreplies_list:
             for triggers, response in default_autoreplies_list:
@@ -49,8 +50,10 @@ class MessageHandler(object):
         for conv in self.bot._conv_list.get_all():
             try:
                 autoreplies_list = bot.config['conversations'][conv.id_]["autoreplies"]
+                inherit = bot.get_config_suboption("inherit_autoreplies")
             except (KeyError, TypeError):
                 autoreplies_list = default_autoreplies_list  # This is the case that a conv didn't set any autoreplies
+                inherit = False
 
             if autoreplies_list != default_autoreplies_list:
                 if len(autoreplies_list) == 0:
@@ -63,6 +66,14 @@ class MessageHandler(object):
                                 label = trigger[7:]
                                 triggers.remove(trigger)
                         self.autoreply_list.add(AutoReply(triggers, response, conv.id_, label=label))
+                    if inherit: # TODO Refactor AutoReply in order to more easily support autoreply inheriting.
+                        global_autoreplies = [x for x in self.autoreply_list if x.conv_id is None]
+                        conv_autoreplies = [x for x in self.autoreply_list if x.conv_id == conv.id_]
+                        for autoreply in global_autoreplies:
+                            if autoreply not in conv_autoreplies:
+                                new_autoreply = copy.deepcopy(autoreply)
+                                new_autoreply.conv_id = conv.id_
+                                self.autoreply_list.add(new_autoreply)
 
     @asyncio.coroutine
     def handle(self, event):
@@ -153,15 +164,15 @@ class MessageHandler(object):
 
                 # Prepend forwarded message with name of sender
                 link = 'https://plus.google.com/u/0/{}/about'.format(event.user_id.chat_id)
-                segments = [hangups.ChatMessageSegment(event.user.full_name, hangups.SegmentType.LINK,
+                segments = [hangups.ChatMessageSegment(event.user.full_name, hangouts_pb2.SEGMENT_TYPE_LINK,
                                                        link_target=link, is_bold=True),
                             hangups.ChatMessageSegment(': ', is_bold=True)]
                 # Copy original message segments
                 segments.extend(event.conv_event.segments)
                 # Append links to attachments (G+ photos) to forwarded message
                 if event.conv_event.attachments:
-                    segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-                    segments.extend([hangups.ChatMessageSegment(link, hangups.SegmentType.LINK, link_target=link)
+                    segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
+                    segments.extend([hangups.ChatMessageSegment(link, hangouts_pb2.SEGMENT_TYPE_LINK, link_target=link)
                                      for link in event.conv_event.attachments])
                 self.bot.send_message_segments(conv, segments)
 

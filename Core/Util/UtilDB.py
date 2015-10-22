@@ -3,11 +3,13 @@ import sqlite3
 _database_file = None
 
 
+# TODO It's obvious that my SQL knowledge is severely lacking. If anyone wants to fix this, please feel free.
+
 class DatabaseNotInitializedError(BaseException):
     pass
 
 
-curr_version = 1
+curr_version = 2
 
 
 def setDatabase(db):
@@ -36,6 +38,10 @@ def _on_upgrade(version):
     elif version == 0:  # Added in a abstain column to reminders; adds in version table.
         cursor.execute("ALTER TABLE karma ADD COLUMN abstain boolean")
         cursor.execute("CREATE TABLE version (version integer)")
+        version += 1
+
+    elif version == 1: # Added in a table to autoreplies.
+        cursor.execute("CREATE TABLE autoreplies (hashcode integer primary key, muted boolean")
         version += 1
 
     cursor.execute("INSERT INTO version VALUES (?)", (version,))

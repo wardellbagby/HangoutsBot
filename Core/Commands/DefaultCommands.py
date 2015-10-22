@@ -8,7 +8,7 @@ from urllib.error import HTTPError, URLError
 
 from bs4 import BeautifulSoup
 import hangups
-from hangups import schemas
+from hangups import hangouts_pb2
 from hangups.ui.utils import get_conv_name
 
 from Core.Dispatcher import DispatcherSingleton
@@ -16,6 +16,7 @@ from Core.Util import UtilBot
 
 last_recorded, last_recorder = None, None
 reserved_command_names = ['s', 'me']
+
 
 @DispatcherSingleton.register_unknown
 def unknown_command(bot, event, *args, alias=None):
@@ -60,7 +61,7 @@ def define(bot, event, *args):
     if args[-1].isdigit():
         definition, length = UtilBot.define(' '.join(args[0:-1]), num=int(args[-1]))
         segments = [hangups.ChatMessageSegment(' '.join(args[0:-1]).title(), is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment(
                         definition.replace('\n', ''))]
         bot.send_message_segments(event.conv, segments)
@@ -93,7 +94,7 @@ def define(bot, event, *args):
             return
         query = ' '.join(args[:-1])
         definition_segments = [hangups.ChatMessageSegment(query.title(), is_bold=True),
-                               hangups.ChatMessageSegment('', segment_type=hangups.SegmentType.LINE_BREAK)]
+                               hangups.ChatMessageSegment('', segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
         if start < end:
             x = start
             while x <= end:
@@ -101,9 +102,9 @@ def define(bot, event, *args):
                 definition_segments.append(hangups.ChatMessageSegment(definition))
                 if x != end:
                     definition_segments.append(
-                        hangups.ChatMessageSegment('', segment_type=hangups.SegmentType.LINE_BREAK))
+                        hangups.ChatMessageSegment('', segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
                     definition_segments.append(
-                        hangups.ChatMessageSegment('', segment_type=hangups.SegmentType.LINE_BREAK))
+                        hangups.ChatMessageSegment('', segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
                 if end > length:
                     end = length
                 if display_all:
@@ -157,8 +158,8 @@ def wiki(bot, event, *args):
         except DisambiguationError as e:
             page = wikipedia.page(wikipedia.search(e.options[0], results=1)[0])
         segments = [
-            hangups.ChatMessageSegment(page.title, hangups.SegmentType.LINK, is_bold=True, link_target=page.url),
-            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+            hangups.ChatMessageSegment(page.title, hangouts_pb2.SEGMENT_TYPE_LINK, is_bold=True, link_target=page.url),
+            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
             hangups.ChatMessageSegment(page.summary(sentences=sentences))]
 
         bot.send_message_segments(event.conv, segments)
@@ -193,16 +194,16 @@ def goog(bot, event, *args):
             resp = request.urlopen(req, timeout=10)
         except HTTPError:
             segments = [hangups.ChatMessageSegment('Result:', is_bold=True),
-                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                        hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
             if query:
-                segments.append(hangups.ChatMessageSegment(query, hangups.SegmentType.LINK, link_target=url))
+                segments.append(hangups.ChatMessageSegment(query, hangouts_pb2.SEGMENT_TYPE_LINK, link_target=url))
 
             bot.send_message_segments(event.conv, segments)
             return
         soup = BeautifulSoup(resp)
         bot.send_message_segments(event.conv, [hangups.ChatMessageSegment('Result:', is_bold=True),
-                                               hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                                               hangups.ChatMessageSegment(soup.title.string, hangups.SegmentType.LINK,
+                                               hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                                               hangups.ChatMessageSegment(soup.title.string, hangouts_pb2.SEGMENT_TYPE_LINK,
                                                                           link_target=url)])
 
     yield from send_goog_message(bot, event, url, search_terms, headers)
@@ -237,18 +238,18 @@ def users(bot, event, *args):
     """
     segments = [hangups.ChatMessageSegment('Users: '.format(len(event.conv.users)),
                                            is_bold=True),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
     for user in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
         link = 'https://plus.google.com/u/0/{}/about'.format(user.id_.chat_id)
-        segments.append(hangups.ChatMessageSegment(user.full_name, hangups.SegmentType.LINK,
+        segments.append(hangups.ChatMessageSegment(user.full_name, hangouts_pb2.SEGMENT_TYPE_LINK,
                                                    link_target=link))
         if user.emails:
             segments.append(hangups.ChatMessageSegment(' ('))
-            segments.append(hangups.ChatMessageSegment(user.emails[0], hangups.SegmentType.LINK,
+            segments.append(hangups.ChatMessageSegment(user.emails[0], hangouts_pb2.SEGMENT_TYPE_LINK,
                                                        link_target='mailto:{}'.format(user.emails[0])))
             segments.append(hangups.ChatMessageSegment(')'))
 
-        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+        segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
     bot.send_message_segments(event.conv, segments)
 
 
@@ -262,21 +263,21 @@ def user(bot, event, username, *args):
     username_lower = username.strip().lower()
     segments = [hangups.ChatMessageSegment('User: "{}":'.format(username),
                                            is_bold=True),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
     for u in sorted(event.conv.users, key=lambda x: x.full_name.split()[-1]):
         if username_lower not in u.full_name.lower():
             continue
 
         link = 'https://plus.google.com/u/0/{}/about'.format(u.id_.chat_id)
-        segments.append(hangups.ChatMessageSegment(u.full_name, hangups.SegmentType.LINK,
+        segments.append(hangups.ChatMessageSegment(u.full_name, hangouts_pb2.SEGMENT_TYPE_LINK,
                                                    link_target=link))
         if u.emails:
             segments.append(hangups.ChatMessageSegment(' ('))
-            segments.append(hangups.ChatMessageSegment(u.emails[0], hangups.SegmentType.LINK,
+            segments.append(hangups.ChatMessageSegment(u.emails[0], hangouts_pb2.SEGMENT_TYPE_LINK,
                                                        link_target='mailto:{}'.format(u.emails[0])))
             segments.append(hangups.ChatMessageSegment(')'))
         segments.append(hangups.ChatMessageSegment(' ... {}'.format(u.id_.chat_id)))
-        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+        segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
     if len(segments) > 2:
         bot.send_message_segments(event.conv, segments)
     else:
@@ -291,7 +292,7 @@ def hangouts(bot, event, *args):
     Purpose: Lists all Hangouts this Bot is currently in.
     """
     segments = [hangups.ChatMessageSegment('Currently In These Hangouts:', is_bold=True),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
     for c in bot.list_conversations():
         s = '{} [commands: {:d}, forwarding: {:d}, autoreplies: {:d}]' \
             .format(get_conv_name(c, truncate=True),
@@ -302,7 +303,7 @@ def hangouts(bot, event, *args):
                     bot.get_config_suboption(c.id_,
                                              'autoreplies_enabled'))
         segments.append(hangups.ChatMessageSegment(s))
-        segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+        segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
 
     bot.send_message_segments(event.conv, segments)
 
@@ -319,9 +320,9 @@ def rename(bot, event, *args):
     if args[0] == 'append':
         curr_name = event.conv.name.strip()
         if curr_name is None:
-            yield from bot._client.setchatname(event.conv_id, ' '.join(args))
+            yield from bot._client.setchatname(event.conv_id, ' '.join(args[1:]))
             return
-        new_name = curr_name + ' ' + (' '.join(args)).strip()
+        new_name = curr_name + ' ' + (' '.join(args[1:])).strip()
         yield from bot._client.setchatname(event.conv_id, new_name)
     else:
         yield from bot._client.setchatname(event.conv_id, ' '.join(args))
@@ -357,22 +358,22 @@ def clear(bot, event, *args):
     Usage: /clear
     Purpose: Clears the current screen by displaying 16 blank lines.
     """
-    segments = [hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK),
-                hangups.ChatMessageSegment('Intentionally not displayed.', hangups.SegmentType.LINE_BREAK)]
+    segments = [hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                hangups.ChatMessageSegment('Intentionally not displayed.', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
     bot.send_message_segments(event.conv, segments)
 
 
@@ -420,7 +421,7 @@ def status(bot, event, *args):
     """
 
     segments = [hangups.ChatMessageSegment('Status:', is_bold=True),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
 
     autoreplies_enabled = bot.config['conversations'][event.conv_id]['autoreplies_enabled']
     autoreplies = UtilBot.get_autoreplies(bot, event.conv_id)
@@ -436,7 +437,7 @@ def status(bot, event, *args):
             reply = autoreplies[i]
             segments.append(hangups.ChatMessageSegment(
                 '{} - {}: {}'.format(i + 1, reply.label, 'Disabled' if reply.is_muted(event.conv_id) else 'Enabled')))
-            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
         segments.pop()
     bot.send_message_segments(event.conv, segments)
 
@@ -450,9 +451,9 @@ def reload(bot, event, *args):
     """
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Reload', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /reload'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Purpose: Reloads current config file.')]
         bot.send_message_segments(event.conv, segments)
     else:
@@ -495,7 +496,7 @@ def config(bot, event, cmd=None, *args):
     config_path = ' '.join(k for k in ['config'] + config_args)
     segments = [hangups.ChatMessageSegment('{}:'.format(config_path),
                                            is_bold=True),
-                hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
     segments.extend(UtilBot.text_to_segments(json.dumps(value, indent=2, sort_keys=True)))
     bot.send_message_segments(event.conv, segments)
 
@@ -504,14 +505,14 @@ def config(bot, event, cmd=None, *args):
 def block(bot, event, username=None, *args):
     if not username:
         segments = [hangups.ChatMessageSegment("Blocked Users: ", is_bold=True),
-                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment("No users blocked.")]
         if len(UtilBot.get_blocked_users_in_conversations(event.conv_id)) > 0:
             segments.pop()
             for user in event.conv.users:
                 if UtilBot.is_user_blocked(event.conv_id, user.id_):
                     segments.append(hangups.ChatMessageSegment(user.full_name))
-                    segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+                    segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
             segments.pop()
         bot.send_message_segments(event.conv, segments)
         return
@@ -679,7 +680,7 @@ def _karma(bot, event, *args):
             bot.send_message(event.conv, "{}'s karma is now {}".format(u.full_name, new_karma))
             return
 
-    yield from bot._client.settyping(event.conv_id, schemas.TypingStatus.STOPPED)
+    yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
 
 
 @DispatcherSingleton.register
@@ -687,7 +688,7 @@ def karma(bot, event, name=None, *args):
     if name == 'abstain':
         curr_abstain = UtilBot.is_user_abstained(event.user.id_[0])
         UtilBot.set_karma_abstain(event.user.id_[0], not curr_abstain)
-        yield from bot._client.settyping(event.conv_id, schemas.TypingStatus.STOPPED)
+        yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
         return
 
     if name:
@@ -702,7 +703,7 @@ def karma(bot, event, name=None, *args):
                 continue
 
             segments = [hangups.ChatMessageSegment('%s:' % u.full_name, is_bold=True),
-                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                        hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                         hangups.ChatMessageSegment('Karma: ' + str(UtilBot.get_current_karma(u.id_[0])))]
             bot.send_message_segments(event.conv, segments)
             return
@@ -722,29 +723,29 @@ def karma(bot, event, name=None, *args):
         list_num = min(5, int(len(users) / 2) + 1)
         karma_list.sort(key=lambda x: -x[1])
         segments = [hangups.ChatMessageSegment("Karma Stats:", is_bold=True),
-                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment("Top:", is_italic=True),
-                    hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK)]
+                    hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
         if len(users) > 10:
             for i in range(0, min(list_num, len(users))):
                 segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
-                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
 
-            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
             segments.append(hangups.ChatMessageSegment("Bottom:", is_italic=True))
-            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
 
             for i in range(-1, -min(list_num, len(users)) - 1, -1):
                 segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
-                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
         else:
             for i in range(0, len(users)):
                 segments.append(hangups.ChatMessageSegment("{}: {}".format(karma_list[i][0], karma_list[i][1])))
-                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+                segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
 
-        segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+        segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
         segments.append(hangups.ChatMessageSegment("Average Karma:", is_italic=True))
-        segments.append(hangups.ChatMessageSegment("\n", segment_type=hangups.SegmentType.LINE_BREAK))
+        segments.append(hangups.ChatMessageSegment("\n", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
         segments.append(hangups.ChatMessageSegment('{}'.format((sum([i[1] for i in karma_list]) / len(karma_list)))))
         bot.send_message_segments(event.conv, segments)
 
@@ -765,7 +766,7 @@ def image(bot, event, *args, alias="image"):
 @DispatcherSingleton.register
 def gif(bot, event, *args):
     query = ' '.join(args)
-    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&imgtype=animated&' \
+    url = 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8&safe=active&imgsz=medium&imgtype=animated&as_filetype=gif&hq=animated&' \
           + parse.urlencode({'q': query})
     resp = request.urlopen(url)
     image_json = json.loads(resp.read().decode())
@@ -782,5 +783,5 @@ def send_image(bot, event, url):
         bot.send_message(event.conv, "Error attempting to upload image.")
         return
     bot.send_message_segments(event.conv, [
-        hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
+        hangups.ChatMessageSegment("Picture Message", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)],
                               image_id=image_id)

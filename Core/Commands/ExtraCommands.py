@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from dateutil import parser
 import dateutil
 import hangups
+from hangups import hangouts_pb2
 import requests
 import parsedatetime
 
@@ -35,10 +36,10 @@ def count(bot, event, *args):
 def udefine(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Urbanly Define', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment(
                         'Usage: /udefine <word to search for> <optional: definition number [defaults to 1st]>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Purpose: Define a word.')]
         bot.send_message_segments(event.conv, segments)
     else:
@@ -75,11 +76,11 @@ def udefine(bot, event, *args):
                 segments = []
                 for string in result_list:
                     segments.append(hangups.ChatMessageSegment(string))
-                    segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+                    segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
                 bot.send_message_segments(event.conv, segments)
             else:
                 segments = [hangups.ChatMessageSegment(' '.join(args), is_bold=True),
-                            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                             hangups.ChatMessageSegment(result + ' [{0} of {1}]'.format(
                                 num_requested + 1, len(result_list)))]
                 bot.send_message_segments(event.conv, segments)
@@ -116,7 +117,7 @@ def remind(bot, event, *args):
     # Show all reminders
     if len(args) == 0:
         segments = [hangups.ChatMessageSegment('Reminders:', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
         reminders = UtilBot.get_all_reminders(event.conv_id)
         if len(reminders) > 0:
             for x in range(0, len(reminders)):
@@ -126,7 +127,7 @@ def remind(bot, event, *args):
                 segments.append(
                     hangups.ChatMessageSegment(
                         str(x + 1) + ' - ' + date_to_post.strftime('%m/%d/%y %I:%M%p') + ' : ' + reminder_text))
-                segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+                segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
             segments.pop()
             bot.send_message_segments(event.conv, segments)
         if len(segments) <= 2:
@@ -186,10 +187,10 @@ def remind(bot, event, *args):
 def finish(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Finish', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment(
                         'Usage: /finish <lyrics to finish> <optional: * symbol to show guessed song>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Purpose: Finish a lyric!')]
         bot.send_message_segments(event.conv, segments)
     else:
@@ -232,7 +233,7 @@ def finish(bot, event, *args):
             found_lyric = anchors[found_lyric]
         if showguess:
             segments = [hangups.ChatMessageSegment(found_lyric),
-                        hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                        hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                         hangups.ChatMessageSegment(songs[0].name)]
             bot.send_message_segments(event.conv, segments)
         else:
@@ -276,12 +277,12 @@ def record(bot, event, *args):
         file.seek(0)
         segments = [hangups.ChatMessageSegment(
             'On the day of ' + datetime.date.today().strftime('%B %d, %Y') + ':', is_bold=True),
-            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
         for line in file:
             segments.append(
                 hangups.ChatMessageSegment(line))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
         bot.send_message_segments(event.conv, segments)
 
     # Removes the last line recorded, iff the user striking is the same as the person who recorded last.
@@ -308,7 +309,7 @@ def record(bot, event, *args):
         segments = []
         for name in files:
             segments.append(hangups.ChatMessageSegment(name.replace(".txt", "")))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
         bot.send_message_segments(event.conv, segments)
 
     # Shows a list of records that match the search criteria.
@@ -334,10 +335,10 @@ def record(bot, event, *args):
             segments = [hangups.ChatMessageSegment("Found "),
                         hangups.ChatMessageSegment(searched_term, is_bold=True),
                         hangups.ChatMessageSegment(" in:"),
-                        hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK)]
+                        hangups.ChatMessageSegment("\n", hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
             for filename in foundin:
                 segments.append(hangups.ChatMessageSegment(filename))
-                segments.append(hangups.ChatMessageSegment("\n", hangups.SegmentType.LINE_BREAK))
+                segments.append(hangups.ChatMessageSegment("\n", hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
             bot.send_message_segments(event.conv, segments)
         else:
             segments = [hangups.ChatMessageSegment("Couldn't find  "),
@@ -363,11 +364,11 @@ def record(bot, event, *args):
             bot.send_message(event.conv, "No record for the day of " + dt.strftime('%B %d, %Y') + '.')
             return
         segments = [hangups.ChatMessageSegment('On the day of ' + dt.strftime('%B %d, %Y') + ':', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK)]
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)]
         for line in file:
             segments.append(hangups.ChatMessageSegment(line))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
         bot.send_message_segments(event.conv, segments)
 
     # Saves a record.
@@ -390,17 +391,17 @@ def trash(bot, event, *args):
 def spoof(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Spoof', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /spoof'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Purpose: Who knows...')]
         bot.send_message_segments(event.conv, segments)
     else:
         segments = [hangups.ChatMessageSegment('!!! CAUTION !!!', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('User ')]
         link = 'https://plus.google.com/u/0/{}/about'.format(event.user.id_.chat_id)
-        segments.append(hangups.ChatMessageSegment(event.user.full_name, hangups.SegmentType.LINK,
+        segments.append(hangups.ChatMessageSegment(event.user.full_name, hangouts_pb2.SEGMENT_TYPE_LINK,
                                                    link_target=link))
         segments.append(hangups.ChatMessageSegment(' has just been reporting to the NSA for attempted spoofing!'))
         bot.send_message_segments(event.conv, segments)
@@ -410,9 +411,9 @@ def spoof(bot, event, *args):
 def flip(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Flip', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Usage: /flip <optional: number of times to flip>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Purpose: Flips a coin.')]
         bot.send_message_segments(event.conv, segments)
     else:
@@ -440,10 +441,10 @@ def flip(bot, event, *args):
 def quote(bot, event, *args):
     if ''.join(args) == '?':
         segments = [hangups.ChatMessageSegment('Quote', is_bold=True),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment(
                         'Usage: /quote <optional: terms to search for> <optional: number of quote to show>'),
-                    hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                    hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                     hangups.ChatMessageSegment('Purpose: Shows a quote.')]
         bot.send_message_segments(event.conv, segments)
     else:

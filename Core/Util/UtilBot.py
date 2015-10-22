@@ -567,7 +567,8 @@ def change_karma(user_id, karma):
         user_karma = user_karma[1]
     else:
         user_karma = 0
-    UtilDB.set_value_by_user_id("karma", user_id, "karma", (user_karma + karma), defaults=[user_id, str(user_karma), str(False)])
+    UtilDB.set_value_by_user_id("karma", user_id, "karma", (user_karma + karma),
+                                defaults=[user_id, str(user_karma), str(False)])
     return user_karma + karma
 
 
@@ -636,3 +637,27 @@ def get_autoreplies(bot, conv_id):
         return [reply for reply in autoreplies if reply.conv_id == None]
 
     return conv_autoreplies
+
+
+def get_autoreply_mute_status(hashcode):
+    db = UtilDB.get_database()
+    cursor = sqlite3.connect(db).cursor()
+    return cursor.execute("SELECT muted FROM autoreplies WHERE hashcode = ?", (hashcode,))
+
+
+def set_autoreply_mute_status(hashcode, muted):
+    db = UtilDB.get_database()
+    cursor = sqlite3.connect(db).cursor()
+    cursor.execute("UPDATE autoreplies SET muted = ? WHERE hashcode = ?")
+
+
+def add_autoreply(hashcode, muted):
+    db = UtilDB.get_database()
+    cursor = sqlite3.connect(db).cursor()
+    cursor.execute("INSERT INTO autoreplies VALUES(?,?)", (hashcode, muted))
+
+
+def clear_autoreply_status():
+    db = UtilDB.get_database()
+    cursor = sqlite3.connect(db).cursor()
+    cursor.execute("DELETE FROM autoreplies")

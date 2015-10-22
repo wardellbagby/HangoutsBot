@@ -1,10 +1,12 @@
 import asyncio
 from urllib.error import HTTPError, URLError
 import hangups
+from hangups import hangouts_pb2
 from Core.Autoreplies import AutoReply
 from Core.Dispatcher import DispatcherSingleton
 from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
 
+ignore_urls = ["reddit.com", "googleusercontent", "youtube.com", "youtu.be"]
 nltk_installed = True
 try:
     from Libraries import summarize
@@ -28,21 +30,30 @@ def send_image(bot, event, url):
         bot.send_message(event.conv, "Error attempting to upload image.")
         return
     bot.send_message_segments(event.conv, [
-        hangups.ChatMessageSegment("Picture Message", segment_type=hangups.SegmentType.LINE_BREAK)],
+        hangups.ChatMessageSegment("Picture Message", segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK)],
                               image_id=image_id)
 
 
 @DispatcherSingleton.register_autoreply([url_regex], label="Link Summarizer")
 def _url_handle(bot, event, url):
-    if "googleusercontent" in url or "youtube" in url or "youtu.be" in url:  # Ignore links Hangouts will handle itself.
-        yield from bot._client.settyping(event.conv_id, hangups.TypingStatus.STOPPED)
-        return
+    lower_url = url.lower()
+    for ignore in ignore_urls:
+        if ignore in lower_url:
+            yield from bot._client.settyping(event.conv_id, hangups.TypingStatus.STOPPED)
+            return
 
-    if "imgur" in url and url.endswith('gifv'):
-        url = url.replace("gifv", "gif")
+    if "imgur" in lower_url and lower_url.endswith('.gifv'):
+        index = lower_url.rfind('gifv')
+        if index > 0 and index + 3 < len(lower_url):
+            url = url[0:index] + "gif"
+    elif "imgur" in lower_url and lower_url.endswith('.webm'):
+        index = lower_url.rfind('webm')
+        if index > 0 and index + 3 < len(lower_url):
+            url = url[0:index] + "gif"
 
-    if (url.endswith('gif') or url.endswith('jpg') or url.endswith("jpeg") or url.endswith('png') or url.endswith(
-            "bmp")):
+    if (url.endswith('.gif') or url.endswith('.jpg') or url.endswith(".jpeg") or url.endswith(
+            '.png') or url.endswith(
+        ".bmp")):
         yield from send_image(bot, event, url)
         return
 
@@ -64,14 +75,14 @@ def _url_handle(bot, event, url):
             bot.send_message_segments(event.conv, segments)
             return
         except (ValueError, URLError):
-            yield from bot._client.settyping(event.conv_id, hangups.TypingStatus.STOPPED)
+            yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
             return
 
         bot.send_message_segments(event.conv, [
             hangups.ChatMessageSegment(summary),
-            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-            hangups.ChatMessageSegment(url, hangups.SegmentType.LINK, link_target=url)])
+            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+            hangups.ChatMessageSegment(url, hangouts_pb2.SEGMENT_TYPE_LINK, link_target=url)])
 
         # TODO Possibly add in Facebook-esque image sending, too.
 
@@ -79,8 +90,16 @@ def _url_handle(bot, event, url):
         yield from send_link_preview(bot, event, url)
 
 
-
-@DispatcherSingleton.register_autoreply(["whistle", "bot", "whistlebot"], label="Automatic Context Replies")
+@DispatcherSingleton.register_autoreply(["whistle", "bot", "whistlebot", "catbug"], label="Automatic Context Replies")
 def think(bot, event, *args):
     if clever_session:
         bot.send_message(event.conv, clever_session.think(' '.join(args)))
+
+
+@DispatcherSingleton.register_autoreply(["^r\/\\w+$"], label="Reddit autocomplete")
+def reddit_complete(bot, event, *args):
+    if len(args) == 1:
+        link = "http://www.reddit.com/"
+        segment = [hangups.ChatMessageSegment(link + args[0], link_target=link + args[0])]
+        bot.send_message_segments(event.conv, segment)
+    yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
