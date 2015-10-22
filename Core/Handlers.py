@@ -66,7 +66,7 @@ class MessageHandler(object):
                                 label = trigger[7:]
                                 triggers.remove(trigger)
                         self.autoreply_list.add(AutoReply(triggers, response, conv.id_, label=label))
-                    if inherit: # TODO Refactor AutoReply in order to more easily support autoreply inheriting.
+                    if inherit:  # TODO Refactor AutoReply in order to more easily support autoreply inheriting. This feature is currently in the works.
                         global_autoreplies = [x for x in self.autoreply_list if x.conv_id is None]
                         conv_autoreplies = [x for x in self.autoreply_list if x.conv_id == conv.id_]
                         for autoreply in global_autoreplies:
@@ -191,7 +191,7 @@ class MessageHandler(object):
 
         for autoreply in self.autoreply_list:
             if autoreply.is_triggered(event.text, event.conv_id):
-                yield from self.bot._client.settyping(event.conv_id)
+                yield from event.conv.set_typing()
                 # If you register an autoreply with a function callback.
                 if autoreply.is_func():
                     line_args = shlex.split(event.text, posix=False)

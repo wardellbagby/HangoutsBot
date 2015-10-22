@@ -680,7 +680,7 @@ def _karma(bot, event, *args):
             bot.send_message(event.conv, "{}'s karma is now {}".format(u.full_name, new_karma))
             return
 
-    yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
+    yield from event.conv.set_typing(hangups.TYPING_TYPE_STOPPED)
 
 
 @DispatcherSingleton.register
@@ -688,7 +688,7 @@ def karma(bot, event, name=None, *args):
     if name == 'abstain':
         curr_abstain = UtilBot.is_user_abstained(event.user.id_[0])
         UtilBot.set_karma_abstain(event.user.id_[0], not curr_abstain)
-        yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
+        yield from event.conv.set_typing(hangups.TYPING_TYPE_STOPPED)
         return
 
     if name:

@@ -2,6 +2,7 @@ import asyncio
 from urllib.error import HTTPError, URLError
 import hangups
 from hangups import hangouts_pb2
+from sympy.parsing.sympy_parser import parse_expr
 from Core.Autoreplies import AutoReply
 from Core.Dispatcher import DispatcherSingleton
 from Libraries.cleverbot import ChatterBotFactory, ChatterBotType
@@ -16,6 +17,7 @@ except ImportError:
 clever_session = ChatterBotFactory().create(ChatterBotType.CLEVERBOT).create_session()
 
 url_regex = "^((([A-Za-z]{3,9}:(?:\\/\\/)?)(?:[\\-;:&=\\+\\$,\\w]+@)?[A-Za-z0-9\\.\\-]+|(?:www\\.|[\\-;:&=\\+\\$,\\w]+@)[A-Za-z0-9\\.\\-]+)((?:\\/[\\+~%\\/\\.\\w\\-]*)?\\??(?:[\\-\\+=&;%@\\.\\w]*)#?(?:[\\.\\!\\/\\\\w]*))?)$"
+expression_regex = "^((([(]?[-]?[0-9]*[.]?[0-9]+)+([\/\+\-\*])+)+([0-9]*[.]?[0-9]+[)]?)+[\+\-\*\/]?([0-9]*)*)+$"
 
 DispatcherSingleton.register_autoreply_type(AutoReply(["^@[\\w\\s]+$"], "/karma {}", label="Karma Status"))
 DispatcherSingleton.register_autoreply_type(AutoReply(["^@[\\w\\s]+\\++$"], "/_karma {}", label="Karma Increasing"))
@@ -39,7 +41,7 @@ def _url_handle(bot, event, url):
     lower_url = url.lower()
     for ignore in ignore_urls:
         if ignore in lower_url:
-            yield from bot._client.settyping(event.conv_id, hangups.TypingStatus.STOPPED)
+            yield from event.conv.set_typing(hangups.TYPING_TYPE_STOPPED)
             return
 
     if "imgur" in lower_url and lower_url.endswith('.gifv'):
@@ -75,7 +77,7 @@ def _url_handle(bot, event, url):
             bot.send_message_segments(event.conv, segments)
             return
         except (ValueError, URLError):
-            yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
+            yield from event.conv.set_typing(hangups.TYPING_TYPE_STOPPED)
             return
 
         bot.send_message_segments(event.conv, [
@@ -95,6 +97,17 @@ def think(bot, event, *args):
     if clever_session:
         bot.send_message(event.conv, clever_session.think(' '.join(args)))
 
+# TODO Regex is not a suitable way of matching mathematical equations. Need another refactor to have this as a handler
+# instead of an autoreply.
+@DispatcherSingleton.register_autoreply([expression_regex], label="Automatic Expression/Equation Solver")
+def math_handle(bot, event, *args):
+    from sympy.parsing.sympy_parser import standard_transformations, implicit_multiplication_application
+
+    transformations = (standard_transformations + (implicit_multiplication_application,))
+
+    result = parse_expr(' '.join(args), transformations=transformations)
+    bot.send_message(event.conv, str(result))
+
 
 @DispatcherSingleton.register_autoreply(["^r\/\\w+$"], label="Reddit autocomplete")
 def reddit_complete(bot, event, *args):
@@ -102,4 +115,4 @@ def reddit_complete(bot, event, *args):
         link = "http://www.reddit.com/"
         segment = [hangups.ChatMessageSegment(link + args[0], link_target=link + args[0])]
         bot.send_message_segments(event.conv, segment)
-    yield from bot._client.settyping(event.conv_id, hangups.TYPING_TYPE_STOPPED)
+    yield from event.conv.set_typing(hangups.TYPING_TYPE_STOPPED)

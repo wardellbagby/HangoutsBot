@@ -24,29 +24,47 @@ def _on_upgrade(version):
         cursor = database.cursor()
     else:
         return
+    try:
+        if version == -1:  # Drop all tables and recreate.
+            database.commit()
+            # database.close()
+            database, cursor = _create_tables(_database_file)
+            version = curr_version
+        elif version == 0:  # Added in a abstain column to reminders; adds in version table.
+            cursor.execute("ALTER TABLE karma ADD COLUMN abstain boolean")
+            cursor.execute("CREATE TABLE version (version integer)")
+            version += 1
 
-    if version == -1:  # Drop all tables and recreate.
-        cursor.execute("DROP TABLE karma")
-        cursor.execute("DROP TABLE reminders")
-        cursor.execute("DROP TABLE version")
-
-        cursor.execute("CREATE TABLE karma (user_id text, karma integer, abstain boolean)")
-        cursor.execute("CREATE TABLE reminders (conv_id text, message text, timestamp integer)")
-        cursor.execute("CREATE TABLE version (version integer)")
-        version = curr_version  # Since we recreated the whole table, we can just immediately go to current version.
-
-    elif version == 0:  # Added in a abstain column to reminders; adds in version table.
-        cursor.execute("ALTER TABLE karma ADD COLUMN abstain boolean")
-        cursor.execute("CREATE TABLE version (version integer)")
-        version += 1
-
-    elif version == 1: # Added in a table to autoreplies.
-        cursor.execute("CREATE TABLE autoreplies (hashcode integer primary key, muted boolean")
-        version += 1
+        elif version == 1:  # Added in a table to autoreplies.
+            cursor.execute("CREATE TABLE autoreplies (hashcode integer primary key, muted boolean)")
+            version += 1
+    except sqlite3.OperationalError:
+        # Just recreate.
+        # cursor.close()
+        database.commit()
+        # database.close()
+        database, cursor = _create_tables(_database_file)
+        version = curr_version
 
     cursor.execute("INSERT INTO version VALUES (?)", (version,))
     database.commit()
     database.close()
+
+
+def _create_tables(_database_file):
+    db = sqlite3.connect(_database_file)
+    cursor = db.cursor()
+    cursor.execute("DROP TABLE IF EXISTS karma")
+    cursor.execute("DROP TABLE IF EXISTS reminders")
+    cursor.execute("DROP TABLE IF EXISTS version")
+
+    cursor.execute("CREATE TABLE karma (user_id text, karma integer, abstain boolean)")
+    cursor.execute("CREATE TABLE reminders (conv_id text, message text, timestamp integer)")
+    cursor.execute("CREATE TABLE version (version integer)")
+    db.commit()
+    db.close()
+    db = sqlite3.connect(_database_file)
+    return db, db.cursor()
 
 
 def _init_tables():
@@ -64,7 +82,9 @@ def _init_tables():
         version = None
         for row in result:
             if 'version' in row:
-                version = cursor.execute("SELECT version FROM version").fetchone()[0]
+                version = cursor.execute("SELECT version FROM version").fetchone()
+                if version:
+                    version = version[0]
 
         # If we don't have a version from the table, it doesn't exist. Let's create it.
         if not version:
@@ -130,7 +150,8 @@ def set_value_by_user_id(table, user_id, keyword, value, conv_id=None, defaults=
                 try:
                     cursor.execute("INSERT INTO %s VALUES (?, ?)" % table, (user_id, value))
                 except sqlite3.OperationalError:
-                    cursor.execute(("INSERT INTO %s VALUES (" % table) + ','.join(["?" for x in defaults]) + ")", defaults)
+                    cursor.execute(("INSERT INTO %s VALUES (" % table) + ','.join(["?" for x in defaults]) + ")",
+                                   defaults)
         database.commit()
     else:
         raise DatabaseNotInitializedError()
