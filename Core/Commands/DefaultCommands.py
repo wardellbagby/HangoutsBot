@@ -320,12 +320,12 @@ def rename(bot, event, *args):
     if args[0] == 'append':
         curr_name = event.conv.name.strip()
         if curr_name is None:
-            yield from bot._client.setchatname(event.conv_id, ' '.join(args[1:]))
+            yield from event.conv.rename(' '.join(args[1:]))
             return
         new_name = curr_name + ' ' + (' '.join(args[1:])).strip()
-        yield from bot._client.setchatname(event.conv_id, new_name)
+        yield from event.conv.rename(new_name)
     else:
-        yield from bot._client.setchatname(event.conv_id, ' '.join(args))
+        yield from event.conv.rename(' '.join(args))
 
 
 @DispatcherSingleton.register

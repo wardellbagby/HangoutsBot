@@ -46,7 +46,7 @@ def _on_upgrade(version):
         database, cursor = _create_tables(_database_file)
         version = curr_version
 
-    cursor.execute("INSERT INTO version VALUES (?)", (version,))
+    cursor.execute("UPDATE version SET version = ?", (version,))
     database.commit()
     database.close()
 
@@ -57,10 +57,13 @@ def _create_tables(_database_file):
     cursor.execute("DROP TABLE IF EXISTS karma")
     cursor.execute("DROP TABLE IF EXISTS reminders")
     cursor.execute("DROP TABLE IF EXISTS version")
+    cursor.execute("DROP TABLE IF EXISTS autoreplies")
 
     cursor.execute("CREATE TABLE karma (user_id text, karma integer, abstain boolean)")
     cursor.execute("CREATE TABLE reminders (conv_id text, message text, timestamp integer)")
+    cursor.execute("CREATE TABLE autoreplies (hashcode integer primary key, muted boolean)")
     cursor.execute("CREATE TABLE version (version integer)")
+    cursor.execute("INSERT INTO version VALUES (?)", (curr_version,))
     db.commit()
     db.close()
     db = sqlite3.connect(_database_file)
