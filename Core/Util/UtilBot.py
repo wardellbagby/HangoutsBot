@@ -5,6 +5,7 @@ from urllib import request
 from bs4 import BeautifulSoup, Tag
 import re
 import hangups
+from hangups import hangouts_pb2
 import sqlite3
 from Core.Util import UtilDB
 
@@ -214,9 +215,25 @@ def find_private_conversation(conv_list, user_id, default=None):
                 continue
 
             # Is the user in this conversation?
-            if user_id in [user.id_ for user in current_conv.users]:
+            if user_id in [user.id_.chat_id for user in current_conv.users]:
                 return current_conv
     return default
+
+
+def create_private_conversation(bot, users=()):
+    invitee_ids = [hangouts_pb2.InviteeID(
+        gaia_id=u.id_.gaia_id,
+        fallback_name=u.full_name
+    ) for u in users]
+    request = hangouts_pb2.CreateConversationRequest(
+        request_header=bot._client.get_request_header(),
+        type=hangouts_pb2.CONVERSATION_TYPE_GROUP,
+        client_generated_id=bot._client.get_client_generated_id(),
+        name="Chat",
+        invitee_id=invitee_ids
+    )
+    res = bot._client.create_conversation(request)
+    return bot._conv_list.add_conversation(res.conversation)
 
 
 def add_to_blocklist(conv_id, user_id):
@@ -661,3 +678,63 @@ def clear_autoreply_status():
     db = UtilDB.get_database()
     cursor = sqlite3.connect(db).cursor()
     cursor.execute("DELETE FROM autoreplies")
+
+
+def update_focus(focus_notification):
+    conv_id = focus_notification.conversation_id.id
+    user_id = focus_notification.sender_id.chat_id
+    type = focus_notification.type
+    timestamp = focus_notification.timestamp  # This is in Nanoseconds.
+    db_file = UtilDB.get_database()
+    db = sqlite3.connect(db_file)
+    cursor = db.cursor()
+    if cursor.execute("SELECT * FROM focus WHERE conv_id = ? AND user_id = ?", (conv_id, user_id)).fetchone():
+        db.commit()
+        cursor.execute("UPDATE focus SET type = ?, timestamp = ? WHERE conv_id = ? AND user_id = ? ",
+                       (type, timestamp, conv_id, user_id))
+    else:
+        db.commit()
+        cursor.execute("INSERT INTO focus VALUES (?, ?, ?, ?)",
+                       (conv_id, user_id, type, timestamp))
+    if type == 1:
+        if cursor.execute("SELECT * FROM pokes WHERE conv_id = ? AND pokee_id = ?", (conv_id, user_id)):
+            db.commit()
+            cursor.execute("DELETE FROM pokes WHERE conv_id = ? AND pokee_id = ?", (conv_id, user_id))
+    db.commit()
+    db.close()
+
+
+def can_poke(poker_id, pokee_id, bot_poke_conv_id=None):
+    if bot_poke_conv_id is None:  # If bot_poke_conv_id is None, then the user hasn't been poked by the bot. So it's good.
+        return True
+    db_file = UtilDB.get_database()
+    db = sqlite3.connect(db_file)
+    cursor = db.cursor()
+    poke_user_abstained = cursor.execute("SELECT poke_abstain FROM users WHERE user_id = ?", (pokee_id,)).fetchone()
+    if poke_user_abstained:
+        poke_user_abstained = poke_user_abstained[0]
+    else:
+        poke_user_abstained = False
+    has_been_poked = cursor.execute("SELECT * FROM pokes WHERE poker_id = ? AND pokee_id = ? AND conv_id = ?",
+                                    (poker_id, pokee_id, bot_poke_conv_id)).fetchone()
+    db.commit()
+    db.close()
+    return not poke_user_abstained and not has_been_poked
+
+
+def initiate_poke(poker, pokee, starting_conv, bot):
+    db_file = UtilDB.get_database()
+    db = sqlite3.connect(db_file)
+    cursor = db.cursor()
+    poker_id = poker.id_.chat_id
+    pokee_id = pokee.id_.chat_id
+    conv = find_private_conversation(bot._conv_list, pokee_id)
+    if not conv:
+        conv = create_private_conversation(bot, pokee)
+    if conv == starting_conv:
+        return
+    conv_id = conv.id_
+    bot.send_message(conv, "%s has poked you from chat %s" % (poker.full_name, starting_conv.name))
+    cursor.execute("INSERT INTO pokes VALUES (?, ?, ?)", (conv_id, poker_id, pokee_id))
+    db.commit()
+    db.close()

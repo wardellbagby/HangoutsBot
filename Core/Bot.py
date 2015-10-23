@@ -13,11 +13,12 @@ from urllib import request
 from urllib.request import FancyURLopener
 
 import hangups
+from hangups import hangouts_pb2
 from hangups.ui.utils import get_conv_name
 from requests import HTTPError
 
 from Core.Dispatcher import DispatcherSingleton
-from Core.Util import ConfigDict, UtilDB
+from Core.Util import ConfigDict, UtilDB, UtilBot
 from Core import Handlers
 
 
@@ -106,6 +107,7 @@ class HangoutsBot(object):
                     self._client = hangups.Client(cookies)
                     self._client.on_connect.add_observer(self._on_connect)
                     self._client.on_disconnect.add_observer(self._on_disconnect)
+                    self._client.on_state_update.add_observer(self._on_state_update)
 
                     # Start asyncio event loop and connect to Hangouts
                     # If we are forcefully disconnected, try connecting again
@@ -151,7 +153,7 @@ class HangoutsBot(object):
         names = ', '.join([user.full_name for user in event_users])
 
         # JOIN
-        if event.conv_event.type_ == hangups.MembershipChangeType.JOIN:
+        if event.conv_event.type_ == hangouts_pb2.MEMBERSHIP_CHANGE_TYPE_JOIN:
             # Test if user who added new participants is admin
             admins_list = self.get_config_suboption(event.conv_id, 'admins')
             if event.user_id.chat_id in admins_list:
@@ -159,11 +161,11 @@ class HangoutsBot(object):
                                   '{}: Hello and welcome!'.format(names))
             else:
                 segments = [hangups.ChatMessageSegment('!!! CAUTION !!!', is_bold=True),
-                            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                             hangups.ChatMessageSegment('{} has illegally added {} to this hangout!'.format(
                                 event.user.full_name, names)),
-                            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
-                            hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK),
+                            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
+                            hangups.ChatMessageSegment('\n', hangouts_pb2.SEGMENT_TYPE_LINE_BREAK),
                             hangups.ChatMessageSegment('{}: Please leave this Hangout immediately!'.format(names))]
                 self.send_message_segments(event.conv, segments)
         # LEAVE
@@ -298,3 +300,8 @@ class HangoutsBot(object):
     def _on_disconnect(self):
         """Handle disconnecting"""
         print('Connection lost!')
+
+    # TODO Refactor this into a registerable handler.
+    def _on_state_update(self, state_update):
+        if state_update.focus_notification:
+            UtilBot.update_focus(state_update.focus_notification)

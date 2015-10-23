@@ -9,7 +9,16 @@ class DatabaseNotInitializedError(BaseException):
     pass
 
 
-curr_version = 2
+_create_table_sql = {
+    "karma": "CREATE TABLE karma (user_id text, karma integer, abstain boolean)",
+    "version": "CREATE TABLE version (version integer)",
+    "autoreplies": "CREATE TABLE autoreplies (hashcode integer primary key, muted boolean)",
+    "reminders": "CREATE TABLE reminders (conv_id text, message text, timestamp integer)",
+    "focus": "CREATE TABLE focus (conv_id text, user_id text, type integer, timestamp integer)",
+    "pokes": "CREATE TABLE pokes (conv_id text, poker_id text, pokee_id text)",
+    "users": "CREATE TABLE users (user_id text, poke_abstain boolean)"
+}
+curr_version = 3
 
 
 def setDatabase(db):
@@ -19,15 +28,16 @@ def setDatabase(db):
 
 
 def _on_upgrade(version):
-    if _database_file:
+    if _database_file and version is not curr_version:
         database = sqlite3.connect(_database_file)
         cursor = database.cursor()
     else:
         return
+    print("Upgrading Database from %s to %s" % (version, curr_version))
     try:
         if version == -1:  # Drop all tables and recreate.
             database.commit()
-            # database.close()
+            database.close()
             database, cursor = _create_tables(_database_file)
             version = curr_version
         elif version == 0:  # Added in a abstain column to reminders; adds in version table.
@@ -38,11 +48,16 @@ def _on_upgrade(version):
         elif version == 1:  # Added in a table to autoreplies.
             cursor.execute("CREATE TABLE autoreplies (hashcode integer primary key, muted boolean)")
             version += 1
+        elif version == 2:  # Created tables for persisting focus and pokes
+            cursor.execute(_create_table_sql["focus"])
+            cursor.execute(_create_table_sql["pokes"])
+            cursor.execute(_create_table_sql["users"])
+            version += 1
     except sqlite3.OperationalError:
         # Just recreate.
-        # cursor.close()
+        cursor.close()
         database.commit()
-        # database.close()
+        database.close()
         database, cursor = _create_tables(_database_file)
         version = curr_version
 
@@ -54,15 +69,10 @@ def _on_upgrade(version):
 def _create_tables(_database_file):
     db = sqlite3.connect(_database_file)
     cursor = db.cursor()
-    cursor.execute("DROP TABLE IF EXISTS karma")
-    cursor.execute("DROP TABLE IF EXISTS reminders")
-    cursor.execute("DROP TABLE IF EXISTS version")
-    cursor.execute("DROP TABLE IF EXISTS autoreplies")
+    for table in _create_table_sql.keys():
+        cursor.execute("DROP TABLE IF EXISTS %s" % table)
+        cursor.execute(_create_table_sql[table])
 
-    cursor.execute("CREATE TABLE karma (user_id text, karma integer, abstain boolean)")
-    cursor.execute("CREATE TABLE reminders (conv_id text, message text, timestamp integer)")
-    cursor.execute("CREATE TABLE autoreplies (hashcode integer primary key, muted boolean)")
-    cursor.execute("CREATE TABLE version (version integer)")
     cursor.execute("INSERT INTO version VALUES (?)", (curr_version,))
     db.commit()
     db.close()
