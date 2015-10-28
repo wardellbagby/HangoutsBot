@@ -26,7 +26,7 @@ def poke(bot, event, *args):
                                 (event.user.id_.chat_id,)).fetchone()
         if result:
             abstain = result[0]
-            cursor.execute("UPDATE users SET poke_abstain = ?", (not abstain,))
+            cursor.execute("UPDATE users SET poke_abstain = ? WHERE user_id = ?", (not abstain, event.user.id_.chat_id))
         else:
             cursor.execute("INSERT INTO users VALUES (?,?)", (event.user.id_.chat_id, True))
     else:

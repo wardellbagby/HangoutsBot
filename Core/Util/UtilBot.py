@@ -553,7 +553,7 @@ def text_to_segments(text):
                 segments.append(hangups.ChatMessageSegment(line, is_italic=True))
             else:
                 segments.append(hangups.ChatMessageSegment(line))
-            segments.append(hangups.ChatMessageSegment('\n', hangups.SegmentType.LINE_BREAK))
+            segments.append(hangups.ChatMessageSegment('\n', segment_type=hangouts_pb2.SEGMENT_TYPE_LINE_BREAK))
     if lines[-1]:
         segments.append(hangups.ChatMessageSegment(lines[-1]))
 
